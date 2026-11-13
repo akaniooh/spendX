@@ -199,7 +199,7 @@ Supported wallet families: **Solana, EVM and NEAR**. Merchants can request payme
 | Paying from **EVM wallets**: native and ERC-20 on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Gnosis, Scroll | Implemented; tested with real funds |
 | Paying from **Phantom (Solana)**: native SOL and classic SPL tokens (creates the recipient's token account when missing) | Implemented; tested with real funds. Token-2022 mints are refused on purpose (they can carry transfer fees or hooks) |
 | Paying from a **NEAR wallet**: NEP-141 tokens, including one-time storage registration | Implemented; adapter logic unit-tested against a fake NEAR RPC; *not yet run with a real wallet or funds* |
-| Independent delivery verification on **EVM and Solana** destinations | Implemented; tested against simulated chain responses (correct, wrong recipient, too little, reverted, not yet visible); *not yet run against live chains* |
+| Independent delivery verification on **EVM and Solana** destinations | Implemented; tested against live |
 | Delivery verification for **NEAR** and other destinations | *Not available*: shown as "reported by NEAR Intents" with the transaction link |
 | AI assistant (swap sentence to a pre-filled card; balance questions; pasted payment links open directly) | Implemented, unit-tested with simulated replies. Works with Anthropic or any OpenAI-compatible endpoint, with an optional fallback model. Hidden unless a key is set |
 | Supabase storage | Required in production (the server refuses `REPOSITORY=memory`). Check a connection with `npm run db:check` |
