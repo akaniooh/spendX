@@ -1,0 +1,74 @@
+/* Landing page. Uses the same tokens as the app (styles.css): spacing, radii, colours and type all come from there. */
+
+.landing main, .landing footer, .lp-top { width: min(1120px, calc(100% - var(--s6) * 1.5)); }
+.lp-top .nav { margin-left: var(--s5); }
+.lp-top .nav button { padding: var(--s2) var(--s4); color: var(--text-2); background: transparent; border: 0; border-radius: var(--control-radius); font-weight: 600; font-size: var(--fs-small); transition: color .15s, background .15s; }
+.lp-top .nav button:hover { color: var(--text); background: var(--surface-2); }
+.lp-launch { height: 44px; padding: 0 var(--s5); display: inline-flex; align-items: center; color: var(--accent-ink); background: var(--accent); border-radius: var(--control-radius); font-size: var(--fs-small); font-weight: 700; transition: background .15s; }
+.lp-launch:hover { background: var(--accent-hover); }
+
+.lp-hero { padding: var(--s8) 0 var(--s7); display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: var(--s7); align-items: center; }
+.lp-hero-copy h1 { font-size: clamp(38px, 5.6vw, 64px); line-height: 1.04; letter-spacing: -.035em; }
+.lp-hero-copy p { margin-top: var(--s5); max-width: 30em; color: var(--text-2); font-size: var(--fs-lead); line-height: 1.6; }
+.lp-actions { margin-top: var(--s6); display: flex; flex-wrap: wrap; gap: var(--s3); }
+.lp-primary, .lp-secondary { height: 56px; padding: 0 var(--s6); display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); border-radius: var(--inner-radius); font: 700 var(--fs-lead)/1 var(--font-display); transition: background .15s; }
+.lp-primary { color: var(--accent-ink); background: var(--accent); }
+.lp-primary:hover { background: var(--accent-hover); }
+.lp-primary svg { margin-right: -2px; }
+.lp-secondary { color: var(--text); background: var(--surface-2); border: 1px solid var(--line); }
+.lp-secondary:hover { background: var(--surface-3); }
+
+/* live quote card: outer radius 24 with 8px padding, so inner boxes are 16 */
+.lp-quote { padding: var(--card-pad); background: var(--surface); border: 1px solid var(--line); border-radius: var(--card-radius); }
+.lp-quote-head { padding: var(--s2) var(--s3) var(--s3); display: flex; align-items: baseline; justify-content: space-between; font-weight: 600; font-family: var(--font-display); }
+.lp-quote-time { color: var(--text-3); font: 500 var(--fs-caption)/1 var(--font-body); }
+.lp-quote-box { margin-top: var(--s1); padding: var(--s4) var(--s5); background: var(--surface-2); border-radius: var(--inner-radius); }
+.lp-label { color: var(--text-2); font-size: var(--fs-small); }
+.lp-quote-amount { margin-top: var(--s2); display: flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: 48px; }
+.lp-quote-amount strong { font: 600 var(--fs-amount)/1.2 var(--font-display); letter-spacing: -.03em; }
+.lp-accent { color: var(--accent); }
+.lp-token { display: inline-flex; align-items: center; gap: var(--s2); height: 44px; padding: 0 var(--s4) 0 var(--s3); background: var(--surface-3); border-radius: 999px; font-weight: 600; white-space: nowrap; }
+.lp-token small { color: var(--text-3); font-weight: 400; font-size: var(--fs-caption); }
+.lp-quote-details { margin: var(--s4) var(--s3) var(--s2); display: flex; flex-direction: column; gap: var(--s3); }
+.lp-quote-details > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s4); font-size: var(--fs-small); }
+.lp-quote-details dt { color: var(--text-2); }
+.lp-quote-details dd { font-weight: 600; text-align: right; }
+
+.lp-stats { padding: var(--s6) 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s5); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.lp-stats > div { display: flex; flex-direction: column; gap: var(--s1); }
+.lp-stats strong { font: 700 clamp(30px, 4vw, 44px)/1.1 var(--font-display); letter-spacing: -.03em; min-height: 40px; }
+.lp-stats span { color: var(--text-2); }
+
+.lp-section { padding: var(--s8) 0 0; scroll-margin-top: var(--s5); }
+.lp-section h2, .lp-built h2, .lp-final h2 { font-size: clamp(26px, 3.4vw, 36px); letter-spacing: -.025em; }
+.lp-lead { margin-top: var(--s3); max-width: 38em; color: var(--text-2); font-size: var(--fs-lead); }
+.lp-steps { margin-top: var(--s6); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s5); }
+.lp-steps li { padding-top: var(--s5); border-top: 1px solid var(--line-strong); }
+.lp-step-n { display: block; margin-bottom: var(--s3); color: var(--accent); font: 700 var(--fs-small)/1 var(--font-display); }
+.lp-steps h3 { font-size: var(--fs-lead); }
+.lp-steps p { margin-top: var(--s2); color: var(--text-2); }
+
+.lp-features { margin-top: var(--s6); display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--s4); }
+.lp-features article { padding: var(--s5); display: flex; flex-direction: column; gap: var(--s3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--card-radius); }
+.lp-features h3 { font-size: var(--fs-h2); }
+.lp-features p { color: var(--text-2); flex: 1; }
+.lp-link { display: inline-flex; align-items: center; gap: var(--s1); color: var(--accent); font-weight: 600; font-size: var(--fs-small); }
+.lp-link:hover { color: var(--accent-hover); }
+
+.lp-chains { margin-top: var(--s5); display: flex; flex-wrap: wrap; gap: var(--s2); }
+.lp-chains li { height: 40px; padding: 0 var(--s4) 0 var(--s3); display: inline-flex; align-items: center; gap: var(--s2); color: var(--text-2); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; font-size: var(--fs-small); }
+
+.lp-built { margin-top: var(--s8); padding: var(--s7) var(--s6); background: var(--surface); border: 1px solid var(--line); border-radius: var(--card-radius); }
+.lp-built p { margin-top: var(--s3); max-width: 38em; color: var(--text-2); font-size: var(--fs-lead); }
+.lp-final { padding: var(--s8) 0 var(--s7); text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--s5); }
+
+@media (max-width: 900px) {
+  .lp-hero { grid-template-columns: 1fr; gap: var(--s6); padding-top: var(--s7); }
+  .lp-steps { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .lp-top .nav { display: none; }
+  .lp-stats { grid-template-columns: 1fr; gap: var(--s4); }
+  .lp-built { padding: var(--s5); }
+  .lp-primary, .lp-secondary { width: 100%; }
+}
