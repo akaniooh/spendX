@@ -26,7 +26,10 @@ export function getPhantom(): PhantomProvider | null {
   return p?.isPhantom ? p : null;
 }
 
-const RPC_URL: string = (import.meta as any).env?.VITE_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+// Default: this app's own server (/api/solana-rpc), which holds the real RPC key. VITE_SOLANA_RPC_URL overrides it with a
+// key-free URL (the build rejects keyed ones). Without a window (tests) it falls back to the public endpoint.
+const RPC_URL: string = (import.meta as any).env?.VITE_SOLANA_RPC_URL
+  || (typeof window !== 'undefined' ? `${window.location.origin}/api/solana-rpc` : 'https://api.mainnet-beta.solana.com');
 const FEE_BUFFER_LAMPORTS = 10_000n; // generous cover for the base transaction fee
 
 const TOKEN_PK = new PublicKey(TOKEN_PROGRAM_ID);
