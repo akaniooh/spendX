@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, sign } from 'node:crypto';
-import { createChallenge, verifyLogin, requireSession, verifySolanaSignature } from '../src/auth.ts';
+import { createChallenge, verifyLogin, requireSession, verifySolanaSignature, createNearSignatureVerifier, nep413Digest } from '../src/auth.ts';
 import type { AuthDeps } from '../src/auth.ts';
 
 const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -98,4 +98,42 @@ test('a signature made for another origin does not verify here', async () => {
   const forged = createChallenge(evil, w.address, 'svm'); // the user was tricked into signing a message naming evil.example
   const sig = w.signMessage(forged.message);
   await assert.rejects(verifyLogin(real, { address: w.address, family: 'svm', challengeToken: forged.challengeToken, signature: sig }), { code: 'unauthorized' });
+});
+
+function nearWallet() {
+  const { publicKey, privateKey } = generateKeyPairSync('ed25519');
+  const raw = publicKey.export({ format: 'der', type: 'spki' }).subarray(-32);
+  const pk = 'ed25519:' + b58encode(raw);
+  return {
+    raw, pk,
+    sign: (m: string) => JSON.stringify({ publicKey: pk, signature: sign(null, nep413Digest(m), privateKey).toString('base64') }),
+  };
+}
+const rpcReply = (result: unknown) => (async () => new Response(JSON.stringify({ jsonrpc: '2.0', id: 'spendx', result }), { status: 200 })) as unknown as typeof fetch;
+
+test('NEAR sign-in: a full-access key of the account verifies; other keys and tampering do not', async () => {
+  const w = nearWallet();
+  const ok = createNearSignatureVerifier({ rpcUrl: 'http://x', fetchImpl: rpcReply({ permission: 'FullAccess', nonce: 1 }) });
+  assert.equal(await ok({ address: 'alice.near', message: 'hello', signature: w.sign('hello') }), true);
+  assert.equal(await ok({ address: 'alice.near', message: 'hello!', signature: w.sign('hello') }), false); // signed a different message
+  const notOwned = createNearSignatureVerifier({ rpcUrl: 'http://x', fetchImpl: rpcReply({ error: 'access key does not exist while viewing' }) });
+  assert.equal(await notOwned({ address: 'alice.near', message: 'hello', signature: w.sign('hello') }), false); // valid signature, key not on the account
+  const callOnly = createNearSignatureVerifier({ rpcUrl: 'http://x', fetchImpl: rpcReply({ permission: { FunctionCall: { receiver_id: 'x' } } }) });
+  assert.equal(await callOnly({ address: 'alice.near', message: 'hello', signature: w.sign('hello') }), false);
+  assert.equal(await ok({ address: 'alice.near', message: 'hello', signature: 'not json' }), false);
+});
+
+test('NEAR sign-in: an implicit account is its own key and needs no lookup', async () => {
+  const w = nearWallet();
+  const neverCalled = (async () => { throw new Error('no RPC expected'); }) as unknown as typeof fetch;
+  const v = createNearSignatureVerifier({ rpcUrl: 'http://x', fetchImpl: neverCalled });
+  assert.equal(await v({ address: Buffer.from(w.raw).toString('hex'), message: 'hi', signature: w.sign('hi') }), true);
+});
+
+test('NEAR sign-in works end to end through the challenge', async () => {
+  const w = nearWallet();
+  const d: AuthDeps = { secret: 'x'.repeat(32), verifiers: { near: createNearSignatureVerifier({ rpcUrl: 'http://x', fetchImpl: rpcReply({ permission: 'FullAccess' }) }) }, now: () => clock };
+  const { challengeToken, message } = createChallenge(d, 'alice.near', 'near');
+  const out = await verifyLogin(d, { address: 'alice.near', family: 'near', challengeToken, signature: w.sign(message) });
+  assert.deepEqual(requireSession(d, `Bearer ${out.token}`), { address: 'alice.near', family: 'near' });
 });

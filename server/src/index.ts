@@ -10,7 +10,7 @@ import { accessLogLine, jsonErrorHandler } from './http.ts';
 import { startReconciler } from './reconciler.ts';
 import { securityHeaders } from './security.ts';
 import { solanaRpcProxyRoute } from './solana-rpc-proxy.ts';
-import { verifyEvmSignature, verifySolanaSignature } from './auth.ts';
+import { createNearSignatureVerifier, verifyEvmSignature, verifySolanaSignature } from './auth.ts';
 import { CatalogCache } from './catalog.ts';
 import { loadConfig } from './config.ts';
 import { MemoryRepository } from './repo-memory.ts';
@@ -50,7 +50,7 @@ if (cfg.assistant) console.log(`Assistant on: ${cfg.assistant.provider}, model "
 if (cfg.assistant?.fallback) console.log(`Assistant fallback: ${cfg.assistant.fallback.provider}, model "${cfg.assistant.fallback.model}"`);
 const routes = buildRoutes({
   service, repo, catalog, assistant,
-  auth: { secret: cfg.sessionSecret, origin: cfg.publicOrigin, verifiers: { svm: verifySolanaSignature, evm: verifyEvmSignature } },
+  auth: { secret: cfg.sessionSecret, origin: cfg.publicOrigin, verifiers: { svm: verifySolanaSignature, evm: verifyEvmSignature, near: createNearSignatureVerifier({ rpcUrl: rpcUrlFor('near') ?? 'https://free.rpc.fastnear.com' }) } },
 });
 
 // The browser reads Solana through this route so the provider key in SOLANA_RPC_URL never leaves the server.
