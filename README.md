@@ -87,9 +87,9 @@ Copy `.env.example` to `.env`. Never commit `.env`.
 - `SESSION_SECRET` (required): at least 32 random characters.
 - `REPOSITORY=memory` for local development (data resets on restart), or Supabase credentials after running `supabase/migrations/0001_init.sql`.
 - `ONECLICK_API_KEY` (optional, free from <https://partners.near-intents.org>): without it an extra 0.25% fee applies to live quotes.
-- Optional `VITE_SOLANA_RPC_URL`: a Solana RPC endpoint for the browser. The default public endpoint is rate-limited.
+- Optional `VITE_SOLANA_RPC_URL`: a Solana RPC endpoint for the browser. The default public endpoint is rate-limited. **It is bundled into public JavaScript, so never put a keyed URL (e.g. Helius `?api-key=`) here**; the build fails if it looks like it contains a key. Keep keyed endpoints server-side via `SOLANA_RPC_URL`.
 - Optional `ANTHROPIC_API_KEY` (and `ANTHROPIC_MODEL`, default `claude-haiku-5-5`; check the name against Anthropic's docs): enables the assistant. Server-side only.
-- Optional `SOLANA_RPC_URL` and `RPC_URL_<CHAIN>` (for example `RPC_URL_BASE`): endpoints the server uses to verify delivery. EVM chains default to viem's public RPC.
+- Optional `SOLANA_RPC_URL` (for example a Helius URL with your key): used by the server to verify deliveries **and** by the built-in `/api/solana-rpc` proxy, which the browser uses for Solana balances and sends, so the key never reaches the browser. The proxy only allows a few read calls and is rate limited per client. Also optional: `RPC_URL_<CHAIN>`, and `RPC_URL_<CHAIN>` (for example `RPC_URL_BASE`): endpoints the server uses to verify delivery. EVM chains default to viem's public RPC.
 
 ### Explore the live catalog (no wallet, no funds)
 
