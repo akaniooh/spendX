@@ -9,6 +9,7 @@ import { createAssistant } from './assistant.ts';
 import { accessLogLine, jsonErrorHandler } from './http.ts';
 import { startReconciler } from './reconciler.ts';
 import { securityHeaders } from './security.ts';
+import { solanaRpcProxyRoute } from './solana-rpc-proxy.ts';
 import { verifyEvmSignature, verifySolanaSignature } from './auth.ts';
 import { CatalogCache } from './catalog.ts';
 import { loadConfig } from './config.ts';
@@ -51,6 +52,9 @@ const routes = buildRoutes({
   service, repo, catalog, assistant,
   auth: { secret: cfg.sessionSecret, origin: cfg.publicOrigin, verifiers: { svm: verifySolanaSignature, evm: verifyEvmSignature } },
 });
+
+// The browser reads Solana through this route so the provider key in SOLANA_RPC_URL never leaves the server.
+routes.push(solanaRpcProxyRoute({ rpcUrl: cfg.solanaRpcUrl, log: (m) => console.warn(m) }));
 
 const app = express();
 app.disable('x-powered-by');
