@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { matchRoute, slugFromInput } from '../src/lib/route.ts';
 import { chainLabel, shortAddr, tokenOptionLabel, formatUsd, formatDuration } from '../src/lib/labels.ts';
 import { isUserRejection, errorMessage } from '../src/lib/errors.ts';
-import { addHistory, parseHistory } from '../src/lib/history.ts';
+import { addHistory, forWallets, parseHistory } from '../src/lib/history.ts';
 import { txUrl } from '../src/lib/explorer.ts';
 import { classifyDeposit } from '../../shared/src/deposit-kind.ts';
 import type { Token } from '../../shared/src/types.ts';
@@ -153,4 +153,13 @@ test('landing statistics and the sample route come from the real catalog, and ar
   const ambiguous = [ch('sol', 'svm', [tk('a', 'SOL')]), ch('base', 'evm', [tk('b1', 'USDC'), tk('b2', 'USDC')])];
   assert.equal(pickSampleRoute(ambiguous), null);
   assert.equal(pickSampleRoute([]), null);
+});
+
+test('local history only shows for the connected wallet', () => {
+  const e = (id: string, payer?: string) => ({ attemptId: id, slug: 's', createdAt: 'c', label: 'l', payer });
+  const list = [e('a', '0xAbC'), e('b', 'SoLaNa1'), e('c'), e('d', '0xother')];
+  assert.deepEqual(forWallets(list, []).map((x) => x.attemptId), []);
+  assert.deepEqual(forWallets(list, ['0xabc']).map((x) => x.attemptId), ['a']);
+  assert.deepEqual(forWallets(list, ['0xabc', 'SoLaNa1']).map((x) => x.attemptId), ['a', 'b']);
+  assert.deepEqual(forWallets(list, ['solana1']).map((x) => x.attemptId), []);
 });

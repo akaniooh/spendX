@@ -85,7 +85,7 @@ export function Pay({ slug }: { slug: string }) {
     try {
       const a = await api.createAttempt(slug, { originAssetId: token.assetId, payerAddress: payer });
       setAttempt(a);
-      saveHistory({ attemptId: a.id, slug, label: `Pay ${req.destination.amountFormatted} ${req.destination.symbol}`, kind: 'payment', fromChain: chain, fromSymbol: token.symbol, toChain: req.destination.blockchain, toSymbol: req.destination.symbol, amountIn: a.deposit.amountFormatted });
+      saveHistory({ attemptId: a.id, slug, label: `Pay ${req.destination.amountFormatted} ${req.destination.symbol}`, kind: 'payment', fromChain: chain, fromSymbol: token.symbol, toChain: req.destination.blockchain, toSymbol: req.destination.symbol, amountIn: a.deposit.amountFormatted, payer });
     } catch (e) { setError(errorMessage(e)); } finally { setBusy(null); }
   }
 

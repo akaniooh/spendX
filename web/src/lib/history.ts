@@ -9,6 +9,7 @@ export interface HistoryEntry {
   toChain?: string;
   toSymbol?: string;
   amountIn?: string; // human amount of the source token
+  payer?: string; // wallet address that made it; local entries only show for connected wallets
 }
 
 const MAX = 50;
@@ -26,6 +27,17 @@ export function parseHistory(raw: string | null): HistoryEntry[] {
   } catch {
     return [];
   }
+}
+
+/** EVM addresses compare case-insensitively (checksummed vs lowercase); Solana and NEAR are exact. */
+export function sameAddress(a: string, b: string): boolean {
+  return a.startsWith('0x') && b.startsWith('0x') ? a.toLowerCase() === b.toLowerCase() : a === b;
+}
+
+/** Only entries made by one of these wallets. Entries saved before wallets were recorded have no payer and are left out. */
+export function forWallets(list: HistoryEntry[], addresses: (string | null | undefined)[]): HistoryEntry[] {
+  const mine = addresses.filter((a): a is string => !!a);
+  return list.filter((e) => !!e.payer && mine.some((a) => sameAddress(a, e.payer!)));
 }
 
 /** Browser-local history of payments started here. A convenience only: failures are ignored. */

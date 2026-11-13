@@ -148,7 +148,7 @@ export function Swap() {
     try {
       const r = await api.createSwap({ originAssetId: from.assetId, destAssetId: to.assetId, amount, payerAddress: payer, recipient, slippageBps: slippage, acknowledgeUncheckedAddress: ack });
       setFinal(r);
-      saveHistory({ attemptId: r.attempt.id, slug: r.request.slug, label: `Swap ${amount} ${from.symbol} to ${to.symbol}`, kind: 'swap', fromChain, fromSymbol: from.symbol, toChain, toSymbol: to.symbol, amountIn: amount });
+      saveHistory({ attemptId: r.attempt.id, slug: r.request.slug, label: `Swap ${amount} ${from.symbol} to ${to.symbol}`, kind: 'swap', fromChain, fromSymbol: from.symbol, toChain, toSymbol: to.symbol, amountIn: amount, payer });
     } catch (e) { setError(errorMessage(e)); } finally { setBusy(null); }
   }
 

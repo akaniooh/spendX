@@ -47,7 +47,7 @@ const NEAR_FLAG = 'spendx.near';
 
 function loadSession(): Session | null {
   try {
-    const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? 'null') as Session | null;
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null') as Session | null;
     return s && Date.parse(s.expiresAt) > correctedNow() ? s : null;
   } catch {
     return null;
@@ -132,10 +132,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [getConnector, adoptNear]);
 
   const disconnect = useCallback((family: ConnectableFamily) => {
+    // Disconnecting the wallet you signed in with also ends that sign-in.
+    const gone = family === 'evm' ? evm?.address : family === 'svm' ? svm?.address : near?.address;
+    if (session && gone && (gone === session.address || gone.toLowerCase() === session.address.toLowerCase())) {
+      try { localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+      setSession(null);
+    }
     if (family === 'evm') { evm?.adapter.disconnect(); setEvm(null); }
     else if (family === 'svm') { svm?.adapter.disconnect(); setSvm(null); }
     else { near?.adapter.disconnect(); setNear(null); try { localStorage.removeItem(NEAR_FLAG); } catch { /* ignore */ } }
-  }, [evm, svm, near]);
+  }, [evm, svm, near, session]);
 
   const signIn = useCallback(async (family: 'evm' | 'svm') => {
     const w = family === 'evm' ? evm : svm;
@@ -144,11 +150,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const signature = await w.adapter.signMessage(message); // free: signs text only, sends no transaction
     const v = await api.verify({ address: w.address, family, challengeToken, signature });
     const s: Session = { token: v.token, address: v.address, family: v.family, expiresAt: v.expiresAt };
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(s));
+    localStorage.setItem(SESSION_KEY, JSON.stringify(s));
     setSession(s);
   }, [evm, svm]);
 
-  const signOut = useCallback(() => { sessionStorage.removeItem(SESSION_KEY); setSession(null); }, []);
+  const signOut = useCallback(() => { try { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ } setSession(null); }, []);
 
   const adapterFor = useCallback((family: WalletFamily): WalletAdapter | null =>
     family === 'evm' ? evm?.adapter ?? null : family === 'svm' ? svm?.adapter ?? null : family === 'near' ? near?.adapter ?? null : null,

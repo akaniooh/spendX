@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../lib/api.ts';
-import { loadHistory } from '../lib/history.ts';
+import { forWallets, loadHistory, sameAddress } from '../lib/history.ts';
 import type { HistoryEntry } from '../lib/history.ts';
 import { useWallets } from '../wallets/WalletContext.tsx';
 import { ChainIcon, Icon, Skeleton } from './Icon.tsx';
@@ -31,19 +31,28 @@ function mergeRows(remote: Row[], local: HistoryEntry[]): Row[] {
 }
 
 export function ActivityTable({ limit }: { limit?: number }) {
-  const { session, evm, svm, signIn } = useWallets();
+  const { session, evm, svm, near, signIn, openWalletModal } = useWallets();
   const [remote, setRemote] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
-  const [signing, setSigning] = useState(false);
+  const [signing, setSigning] = useState<'evm' | 'svm' | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const local = useMemo(() => loadHistory(), []);
 
-  // Load this wallet's activity from the server once signed in.
+  const evmAddr = evm?.address ?? null;
+  const svmAddr = svm?.address ?? null;
+  const nearAddr = near?.address ?? null;
+  const connected = !!(evmAddr || svmAddr || nearAddr);
+
+  // Nothing is shown until a wallet is connected; then only what that wallet made.
+  const local = useMemo(() => forWallets(loadHistory(), [evmAddr, svmAddr, nearAddr]), [evmAddr, svmAddr, nearAddr]);
+
+  // A saved sign-in only counts while the wallet it belongs to is connected.
+  const activeSession = session && [evmAddr, svmAddr].some((a) => a && sameAddress(a, session.address)) ? session : null;
+
   useEffect(() => {
-    if (!session) { setRemote([]); return; }
+    if (!activeSession) { setRemote([]); return; }
     let off = false;
     setLoading(true);
-    api.activity(session.token)
+    api.activity(activeSession.token)
       .then(({ items }) => {
         if (off) return;
         setRemote(items.filter((i) => i.request).map((i): Row => {
@@ -70,26 +79,44 @@ export function ActivityTable({ limit }: { limit?: number }) {
       .catch((e) => { if (!off) setErr(e instanceof Error ? e.message : 'Could not load your activity'); })
       .finally(() => { if (!off) setLoading(false); });
     return () => { off = true; };
-  }, [session]);
+  }, [activeSession?.token]);
 
   const rows = useMemo(() => mergeRows(remote, local).slice(0, limit ?? 50), [remote, local, limit]);
 
-  const signable: 'evm' | 'svm' | null = evm ? 'evm' : svm ? 'svm' : null;
-  async function doSignIn() {
-    if (!signable) return;
-    setSigning(true);
+  async function doSignIn(family: 'evm' | 'svm') {
+    setSigning(family);
     setErr(null);
-    try { await signIn(signable); }
+    try { await signIn(family); }
     catch (e) { setErr(e instanceof Error ? e.message : 'Sign-in was cancelled'); }
-    finally { setSigning(false); }
+    finally { setSigning(null); }
   }
 
-  const banner = !session && signable ? (
+  if (!connected) {
+    return (
+      <div className="empty-state">
+        <Icon name="history" size={24} />
+        <p>Connect your wallet to see your activity.</p>
+        <button className="btn" onClick={openWalletModal}>Connect wallet</button>
+      </div>
+    );
+  }
+
+  // One sign-in button per connected wallet that supports it, so the right wallet can be chosen.
+  const signable = ([['evm', evmAddr, 'Ethereum'], ['svm', svmAddr, 'Solana']] as const)
+    .filter(([, addr]) => addr && !(activeSession && sameAddress(addr, activeSession.address)));
+  const banner = signable.length > 0 ? (
     <div className="empty-state">
-      <p>Sign in with your wallet to see activity from your other devices. It is free and sends no transaction.</p>
-      <button className="btn" onClick={doSignIn} disabled={signing}>{signing ? 'Waiting for wallet…' : 'Sign in to sync'}</button>
+      <p>Sign in with the wallet you paid from to load your activity from other devices. It is free and sends no transaction.</p>
+      {signable.map(([fam, , label]) => (
+        <button key={fam} className="btn" onClick={() => doSignIn(fam)} disabled={signing !== null}>
+          {signing === fam ? 'Waiting for wallet…' : `Sign in with ${label} wallet`}
+        </button>
+      ))}
     </div>
   ) : null;
+  const nearNote = nearAddr && !evmAddr && !svmAddr
+    ? <p className="muted">NEAR wallets cannot sign in yet, so only activity from this browser shows. Connect an Ethereum or Solana wallet to sync.</p>
+    : null;
   const errorNote = err ? <p className="inline-error">{err}</p> : null;
 
   if (loading && rows.length === 0) return <Skeleton w="100%" h="96px" />;
@@ -97,14 +124,18 @@ export function ActivityTable({ limit }: { limit?: number }) {
   if (rows.length === 0) {
     return (
       <>
-        <div className="empty-state"><Icon name="history" size={24} /><p>No activity yet.</p></div>
+        <div className="empty-state"><Icon name="history" size={24} /><p>No activity yet for the connected wallet.</p></div>
         {banner}
+        {nearNote}
         {errorNote}
       </>
     );
   }
   return (
     <>
+      {banner}
+      {nearNote}
+      {errorNote}
       <div className="activity-table">
         <div className="table-head"><span>Route</span><span>Amount</span><span>Date</span><span>Status</span><span /></div>
         {rows.map((e) => (
@@ -122,8 +153,6 @@ export function ActivityTable({ limit }: { limit?: number }) {
           </a>
         ))}
       </div>
-      {banner}
-      {errorNote}
     </>
   );
 }
