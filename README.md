@@ -203,7 +203,7 @@ Supported wallet families: **Solana, EVM and NEAR**. Merchants can request payme
 | Delivery verification for **NEAR** and other destinations | *Not available*: shown as "reported by NEAR Intents" with the transaction link |
 | AI assistant (swap sentence to a pre-filled card; balance questions; pasted payment links open directly) | Implemented, unit-tested with simulated replies. Works with Anthropic or any OpenAI-compatible endpoint, with an optional fallback model. Hidden unless a key is set |
 | Supabase storage | Required in production (the server refuses `REPOSITORY=memory`). Check a connection with `npm run db:check` |
-| Real mainnet payments end to end | *None recorded yet* |
+| Real mainnet payments end to end | Tx Hashs: 5Ni32Q9eHCsBuYgjaKsbs7WLmktg7NECMDegcFJKbsxArNKfdkH9TQPvAtBv3AoVWrrKeena7HADNjXVN6LDqjdJ, 4e6vU6BPBQ1G2Sy85xtJPcDhUAbydYUrKGGqC52EkAxmkSH1QosGZqEwzZRu2D5rwdwNnVwKQHdMZUiU81uDaM6r |
 
 150+ unit tests cover the shared logic, server, and wallet adapters (`npm test`, no network needed).
 
