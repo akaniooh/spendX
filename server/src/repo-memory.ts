@@ -53,6 +53,13 @@ export class MemoryRepository implements Repository {
   async listAttempts(requestId: string) {
     return [...this.attempts.values()].filter((x) => x.requestId === requestId);
   }
+  async listAttemptsByPayer(address: string, limit: number) {
+    const same = (a: string) => (address.startsWith('0x') ? a.toLowerCase() === address.toLowerCase() : a === address);
+    return [...this.attempts.values()]
+      .filter((x) => same(x.payerAddress))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, limit);
+  }
   async listReconcilable(cutoffIso: string, limit: number) {
     const FINAL = new Set(['destination_confirmed', 'failed', 'refunded', 'cancelled', 'needs_review']);
     return [...this.attempts.values()]

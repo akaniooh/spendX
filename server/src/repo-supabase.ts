@@ -157,6 +157,14 @@ export class SupabaseRepository implements Repository {
     this.check(res, 'listing payment attempts');
     return (res.data as Row[]).map(rowToAttempt);
   }
+  async listAttemptsByPayer(address: string, limit: number) {
+    let q = this.db.from('payment_attempts').select('*');
+    // EVM addresses are case-insensitive (checksummed vs lowercase); Solana (base58) addresses are case-sensitive.
+    q = address.startsWith('0x') ? q.ilike('payer_address', address) : q.eq('payer_address', address);
+    const res: QueryResult = await q.order('created_at', { ascending: false }).limit(limit);
+    this.check(res, 'listing attempts by payer');
+    return (res.data as Row[]).map(rowToAttempt);
+  }
   async listReconcilable(cutoffIso: string, limit: number) {
     const open: QueryResult = await this.db.from('payment_attempts').select('*').not('state', 'in', NOT_RECONCILED).order('updated_at', { ascending: true }).limit(limit);
     this.check(open, 'listing open attempts');

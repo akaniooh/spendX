@@ -73,6 +73,8 @@ export interface Repository {
   getLiveAttempt(requestId: string): Promise<Attempt | null>;
   updateAttempt(id: string, patch: Partial<Attempt>): Promise<Attempt>;
   listAttempts(requestId: string): Promise<Attempt[]>;
+  /** Attempts made by this paying wallet (swaps and payments), newest first. Backs the cross-device Activity list. */
+  listAttemptsByPayer(address: string, limit: number): Promise<Attempt[]>;
   /**
    * Attempts the background reconciler should ask NEAR Intents about: everything not yet in a final state, plus attempts
    * that expired after `cutoffIso` (a late deposit can still arrive). Oldest-updated first, at most `limit`.

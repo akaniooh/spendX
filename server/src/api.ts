@@ -246,6 +246,20 @@ export function buildRoutes(d: ApiDeps): Route[] {
       }),
     },
 
+    // The signed-in wallet's own activity (swaps and payments it made), so history follows the wallet across devices.
+    {
+      method: 'GET', path: '/api/activity',
+      handler: safe(async (req) => {
+        const s = requireSession(d.auth, req.headers.authorization);
+        const attempts = await d.repo.listAttemptsByPayer(s.address, 50);
+        const items = await Promise.all(attempts.map(async (a) => {
+          const r = await d.repo.getRequestById(a.requestId);
+          return { createdAt: a.createdAt, attempt: attemptView(a), request: r ? requestView(r) : null };
+        }));
+        return ok({ items });
+      }),
+    },
+
     // ----- customer (public; payment links are unguessable, attempt ids are bearer secrets) -----
     {
       method: 'GET', path: '/api/requests/:slug',
