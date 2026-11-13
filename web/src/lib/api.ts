@@ -58,6 +58,8 @@ export const api = {
     call<RequestView>('POST', '/api/merchant/requests', b, token),
   merchantRequests: (token: string) =>
     call<{ stats: { total: number; paid: number; pending: number }; requests: { request: RequestView; latestAttempt: AttemptView | null }[] }>('GET', '/api/merchant/requests', undefined, token),
+  activity: (token: string) =>
+    call<{ items: { createdAt: string; attempt: AttemptView; request: RequestView | null }[] }>('GET', '/api/activity', undefined, token),
   request: (slug: string) => call<RequestView>('GET', `/api/requests/${encodeURIComponent(slug)}`),
   preview: (slug: string, b: { originAssetId: string; payerAddress: string }) => call<QuotePreview>('POST', `/api/requests/${encodeURIComponent(slug)}/preview`, b),
   createAttempt: (slug: string, b: { originAssetId: string; payerAddress: string }) => call<AttemptView>('POST', `/api/requests/${encodeURIComponent(slug)}/attempts`, b),
