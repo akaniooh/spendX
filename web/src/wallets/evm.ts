@@ -52,6 +52,15 @@ export class EvmWallet implements WalletAdapter {
     this.address = addr;
     return { address: addr as string };
   }
+  /** Re-attach to an account this site was already approved for (eth_accounts: never opens a wallet popup). */
+  async restore(): Promise<{ address: string } | null> {
+    try {
+      const [addr] = await this.wc().getAddresses();
+      if (!addr) return null;
+      this.address = addr;
+      return { address: addr as string };
+    } catch { return null; }
+  }
   async disconnect() { this.address = null; } // EIP-1193 has no disconnect; we just forget the account
   getAddress() { return this.address; }
 

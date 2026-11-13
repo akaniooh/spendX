@@ -82,6 +82,14 @@ export class SolanaWallet implements WalletAdapter {
     this.address = publicKey.toBase58();
     return { address: this.address };
   }
+  /** Re-attach silently if the user already approved this site; never opens a Phantom popup. */
+  async restore(): Promise<{ address: string } | null> {
+    try {
+      const { publicKey } = await this.provider.connect({ onlyIfTrusted: true });
+      this.address = publicKey.toBase58();
+      return { address: this.address };
+    } catch { return null; }
+  }
   async disconnect() {
     try { await this.provider.disconnect(); } catch { /* ignore */ }
     this.address = null;

@@ -10,8 +10,8 @@ import { WalletModal } from './WalletModal.tsx';
 const NAV: { label: string; href: string; names: Route['name'][] }[] = [
   { label: 'Swap', href: '#/swap', names: ['swap'] },
   { label: 'Payments', href: '#/payments', names: ['payments', 'pay'] },
-  { label: 'Activity', href: '#/activity', names: ['activity', 'attempt'] },
   { label: 'Merchant', href: '#/merchant', names: ['merchant'] },
+  { label: 'Activity', href: '#/activity', names: ['activity', 'attempt'] },
 ];
 
 /** Only speaks up when something is wrong: an always-on "online" badge would be noise. */

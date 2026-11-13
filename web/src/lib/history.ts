@@ -3,7 +3,7 @@ export interface HistoryEntry {
   slug: string;
   createdAt: string;
   label: string; // e.g. "Swap 10 SOL to USDC"
-  kind?: 'swap' | 'payment';
+  kind?: 'swap' | 'payment' | 'request'; // 'request' = a payment link this wallet created as a merchant
   fromChain?: string;
   fromSymbol?: string;
   toChain?: string;

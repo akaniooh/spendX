@@ -2,6 +2,7 @@ import type { DepositRequest, WalletAdapter } from '../../../shared/src/adapters
 import { validateAddress } from '../../../shared/src/addresses.ts';
 import { classifyDeposit } from '../../../shared/src/deposit-kind.ts';
 import { planNearDeposit } from '../../../shared/src/near-deposit.ts';
+import { NEAR_SIGN_RECIPIENT } from '../../../shared/src/near-sign.ts';
 import type { Token } from '../../../shared/src/types.ts';
 import { txUrl } from '../lib/explorer.ts';
 import { createNearRpc } from './near-rpc.ts';
@@ -10,7 +11,11 @@ import type { NearRpc } from './near-rpc.ts';
 /** The slice of a NEAR Connect wallet we use (documented: getAddress, signAndSendTransaction). */
 export interface NearWalletHandle {
   signAndSendTransaction(args: { receiverId: string; actions: unknown[] }): Promise<any>;
+  /** NEP-413 message signing (not every wallet offers it) */
+  signMessage?(args: { message: string; recipient: string; nonce: Uint8Array }): Promise<any>;
 }
+
+const toBase64 = (b: Uint8Array) => { let s = ''; for (const x of b) s += String.fromCharCode(x); return btoa(s); };
 
 // Network fees are small (a few thousandths of a NEAR); keep a safe margin so a payment never fails for lack of gas.
 const FEE_BUFFER_YOCTO = 10n ** 22n; // 0.01 NEAR
@@ -36,6 +41,20 @@ export class NearWallet implements WalletAdapter {
   async connect() { return { address: this.address }; } // NEAR Connect has already connected the wallet
   async disconnect() { await this.onDisconnect(); }
   getAddress() { return this.address; }
+
+  /**
+   * Signs the sign-in challenge with NEP-413 (free, no transaction). The nonce is sha256(message), which the server recomputes.
+   * Returns JSON {publicKey, signature}: the server checks the signature AND that this key belongs to the account.
+   */
+  async signMessage(message: string): Promise<string> {
+    if (typeof this.handle.signMessage !== 'function') throw new Error('This NEAR wallet cannot sign messages, so its activity cannot sync across devices.');
+    const nonce = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message)));
+    const r = await this.handle.signMessage({ message, recipient: NEAR_SIGN_RECIPIENT, nonce });
+    if (!r?.publicKey || !r?.signature) throw new Error('The NEAR wallet did not return a signature');
+    if (r.accountId && r.accountId !== this.address) throw new Error('The NEAR wallet signed with a different account');
+    const signature = typeof r.signature === 'string' ? r.signature : toBase64(Uint8Array.from(r.signature));
+    return JSON.stringify({ publicKey: String(r.publicKey), signature });
+  }
 
   async getBalance(token: Token): Promise<bigint> {
     const kind = classifyDeposit(token);
