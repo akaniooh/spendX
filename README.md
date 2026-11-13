@@ -163,43 +163,7 @@ chain and saw the recipient receive at least the promised amount. **Delivery rep
 type cannot be checked by SpendX (for example NEAR), so only NEAR Intents' report and the transaction link back it up.
 If the transaction exists but does not match the recipient or amount, the payment is shown as **Needs review**, never as paid.
 
-## Set up Supabase (persistent storage)
 
-`REPOSITORY=memory` forgets everything on restart, so a hosted demo needs a database. A free Supabase project is enough.
-
-1. **Action:** Create a project at <https://supabase.com>, then open its **SQL editor**, paste the whole of `supabase/migrations/0001_init.sql`, and run it.
-   **Expected result:** The editor reports success, and the **Table editor** lists `payment_requests` and `payment_attempts`.
-2. **Action:** In the project's API settings, copy the **project URL** and the **service_role** key into `.env` as `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, and set `REPOSITORY=supabase`. The service_role key bypasses row-level security, so it must stay on the server: never put it in frontend code, a screenshot or a commit.
-   **Expected result:** `.env` has both values filled in.
-3. **Action:** Run `npm run db:check` (or `node --env-file=.env scripts/db-check.ts`).
-   **Expected result:** `Supabase is ready: both tables exist with the expected columns...`. If something is wrong it names the table or column and the fix. It is read-only.
-
-Row-level security is enabled with no policies, so the public (anon) key can read nothing; only the server's service key can.
-
-## Deploy (one container serves the API and the website)
-
-Any host that runs a Node 22.18+ process or a Docker container will do.
-
-- **Build command:** `npm ci && npm run build` (builds the website into `web/dist`).
-- **Start command:** `npm start` (the API also serves `web/dist`).
-- **Or Docker:** `docker build -t spendx .` then run it with the environment variables below. The `Dockerfile` does the same two steps.
-- **Environment variables** (set them in the host, never commit them): `NODE_ENV=production`, `SESSION_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
-  `TRUST_PROXY=1` (most hosts put one proxy in front), and optionally `ONECLICK_API_KEY`, `ANTHROPIC_API_KEY`, `SOLANA_RPC_URL`.
-  The host normally provides `PORT`.
-- Commit `package-lock.json` so installs are reproducible.
-- In production the server refuses `REPOSITORY=memory`.
-- **Check:** open `/api/health` on the deployed URL (expect `{"ok":true}`) and `/api/config`.
-
-## Troubleshooting
-
-- **`http proxy error ... ECONNREFUSED` in the `npm run dev` window:** the API is not running. Start it in a second terminal with
-  `npm start` (it listens on port 8787). Check that window for the first error line if it stops.
-- **The assistant says "unavailable" or "rejected the key":** run `npm run assistant:check` (or `node --env-file=.env scripts/assistant-check.ts`).
-  It lists the models your key can use, tests the one in `ANTHROPIC_MODEL`, and says whether the problem is the key, the model name or the account credit.
-  In development the Swap page and the `npm start` window show the exact reason; in production visitors only see a generic message and the reason goes to the server log.
-- **The "Describe it" assistant bar is missing:** it only shows when the API is reachable *and* `ANTHROPIC_API_KEY` is set in `.env`.
-  After editing `.env`, stop and restart `npm start`. Open <http://localhost:8787/api/config>: `{"assistant":true}` means it is on.
-  In development the Swap page shows a one-line note saying which of the two is missing.
 
 ## Network and cost notes
 
@@ -210,9 +174,6 @@ without an explicit confirmation in the user's own wallet.
 ## Hackathon disclosure
 
 - Built during NEAR HACKATHON (2026-11-01 to 2026-11-14). No pre-hackathon code.
-- AI-assisted code: written with Claude (Anthropic) under human direction and review.
-- AI in the product: the optional assistant sends the user's typed sentence to the Anthropic Messages API (server-side, key never
-  exposed to the browser) to extract swap fields. No wallet data is sent. It is disabled unless an API key is configured.
 - UI/UX design: supplied by the team as a Figma Make export (a cross-chain transfer interface). Its layout, palette and
   typography are implemented in plain CSS and React; its placeholder content (mock routes, canned assistant replies and
   portfolio figures) was deliberately not used.
