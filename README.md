@@ -6,7 +6,6 @@ and chain they already hold. NEAR Intents routes and settles the transfer, and S
 where it can, checks that delivery on the destination chain itself.
 
 > **Status: hackathon build (NEAR HACKATHON 2026).** This README describes what the code does today.
-> Rows marked *not yet implemented* or *not yet tested with real funds* are exactly that.
 
 ---
 
