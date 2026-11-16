@@ -34,14 +34,27 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   );
 }
 
+// Official artwork supplied for these networks and tokens lives in web/public/icons (square PNGs, already round).
+// Anything not listed falls back to a coloured disc with a letter. To add one, drop `<name>.png` in that folder and list it here.
+const CHAIN_IMAGES: Record<string, string> = { eth: 'eth', base: 'base', sol: 'sol', near: 'near', btc: 'btc', op: 'op', pol: 'pol', arb: 'arb', avax: 'avax' };
+const TOKEN_IMAGES: Record<string, string> = { ETH: 'eth', WETH: 'eth', SOL: 'sol', NEAR: 'near', WNEAR: 'near', USDC: 'usdc', USDT: 'usdt', BTC: 'btc', WBTC: 'btc', OP: 'op', POL: 'pol', MATIC: 'pol', ARB: 'arb', AVAX: 'avax', WAVAX: 'avax' };
+const iconUrl = (name: string) => `/icons/${name}.png`;
+
 export function ChainIcon({ chain, small = false }: { chain: string; small?: boolean }) {
+  const img = CHAIN_IMAGES[chain];
   const bg = chainColor(chain);
-  return <span className={`chain-icon ${small ? 'small' : ''}`} style={{ background: bg, color: contrastText(bg) }} aria-hidden="true">{chainMark(chain)}</span>;
+  return img
+    ? <span className={`chain-icon has-img ${small ? 'small' : ''}`} aria-hidden="true"><img src={iconUrl(img)} alt="" draggable={false} /></span>
+    : <span className={`chain-icon ${small ? 'small' : ''}`} style={{ background: bg, color: contrastText(bg) }} aria-hidden="true">{chainMark(chain)}</span>;
 }
 
-export function TokenIcon({ symbol, chain, small = false }: { symbol: string; chain: string; small?: boolean }) {
+/** `plain` skips the logo: used for look-alike tokens (same symbol as another token on the network) so they never borrow the real token's logo. */
+export function TokenIcon({ symbol, chain, small = false, plain = false }: { symbol: string; chain: string; small?: boolean; plain?: boolean }) {
+  const img = plain ? undefined : TOKEN_IMAGES[symbol.toUpperCase()];
   const bg = tokenColor(symbol, chain);
-  return <span className={`token-icon ${small ? 'small' : ''}`} style={{ background: bg, color: contrastText(bg) }} aria-hidden="true">{tokenMark(symbol)}</span>;
+  return img
+    ? <span className={`token-icon has-img ${small ? 'small' : ''}`} aria-hidden="true"><img src={iconUrl(img)} alt="" draggable={false} /></span>
+    : <span className={`token-icon ${small ? 'small' : ''}`} style={{ background: bg, color: contrastText(bg) }} aria-hidden="true">{tokenMark(symbol)}</span>;
 }
 
 /** SpendX mark: two overlapping rounded squares, rotated. */

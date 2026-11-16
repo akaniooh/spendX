@@ -12,7 +12,7 @@ const STEPS: { state: AttemptView['state']; label: string }[] = [
   { state: 'payment_initiated', label: 'Payment initiated' },
   { state: 'source_submitted', label: 'Source transaction submitted' },
   { state: 'processing', label: 'Processing cross-chain transfer' },
-  { state: 'destination_confirmed', label: 'Destination payment confirmed' },
+  { state: 'destination_confirmed', label: 'Transaction successful' },
 ];
 
 function Link({ href, children }: { href: string | null; children: string }) {
@@ -67,7 +67,7 @@ export function AttemptTracker({ id }: { id: string }) {
     <div className="column stack">
       <div className="card">
         <div className="row between">
-          <h2>{a.state === 'destination_confirmed' ? (r?.kind === 'swap' ? 'Swap complete' : 'Payment complete') : (r?.kind === 'swap' ? 'Swap status' : 'Payment status')}</h2>
+          <h2>{a.state === 'destination_confirmed' ? 'Transaction successful' : (r?.kind === 'swap' ? 'Swap status' : 'Payment status')}</h2>
           <span className={`badge ${a.state === 'destination_confirmed' ? 'ok' : bad ? 'bad' : ''}`}>{a.stateLabel}</span>
         </div>
         {r && (r.kind === 'swap'

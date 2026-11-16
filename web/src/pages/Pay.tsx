@@ -116,6 +116,7 @@ export function Pay({ slug }: { slug: string }) {
   const label = `${req.destination.amountFormatted} ${req.destination.symbol}`;
   if (req.status === 'paid') return <section className="page-head"><h1>Already paid</h1><p>{label} on {chainLabel(req.destination.blockchain)} has been paid.</p></section>;
   if (req.status === 'cancelled') return <section className="page-head"><h1>Payment cancelled</h1></section>;
+  if (req.status === 'expired') return <section className="page-head"><h1>Link expired</h1><p>This payment link is no longer active. Ask the merchant for a new one.</p></section>;
 
   // exact decimal arithmetic (never floats): a balance check must not round
   let needed: bigint | null = null;
