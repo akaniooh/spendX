@@ -4,6 +4,8 @@ export interface Config {
   oneClickApiKey?: string;
   slippageBps: number;
   deadlineMinutes: number;
+  /** minutes a merchant payment link stays usable */
+  linkExpiryMinutes: number;
   sessionSecret: string;
   repository: 'supabase' | 'memory';
   supabaseUrl?: string;
@@ -117,6 +119,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     oneClickApiKey: env.ONECLICK_API_KEY || undefined,
     slippageBps: num('SLIPPAGE_BPS', 100, 1, 1000),
     deadlineMinutes: num('QUOTE_DEADLINE_MINUTES', 10, 3, 60),
+    linkExpiryMinutes: num('LINK_EXPIRY_MINUTES', 30, 1, 10080),
     sessionSecret: secret,
     repository,
     supabaseUrl: env.SUPABASE_URL,

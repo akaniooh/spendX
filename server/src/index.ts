@@ -43,6 +43,7 @@ const service = new PaymentService({
   verifiers: { evm: createEvmVerifier({ rpcUrlFor }), svm: createSolanaVerifier({ rpcUrl: cfg.solanaRpcUrl }) },
   slippageBps: cfg.slippageBps,
   deadlineMinutes: cfg.deadlineMinutes,
+  linkExpiryMinutes: cfg.linkExpiryMinutes,
 });
 // Optional: only enabled when ANTHROPIC_API_KEY or OPENAI_API_KEY is set (AI_PROVIDER picks one if both are). Without it SpendX works exactly the same, minus the assistant.
 const assistant = cfg.assistant ? createAssistant({ ...cfg.assistant, catalog }) : undefined;

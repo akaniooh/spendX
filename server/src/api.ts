@@ -41,11 +41,12 @@ export interface ApiDeps {
 
 // ---------- views (what clients see; bigint never leaves as a number) ----------
 
-export function requestView(r: PaymentRequest) {
+export function requestView(r: PaymentRequest, status: PaymentRequest['status'] | 'expired' = r.status, expiresAt: string | null = null) {
   return {
     slug: r.slug,
     kind: r.kind,
-    status: r.status,
+    status,
+    expiresAt,
     description: r.description ?? null,
     merchantAddress: r.merchantAddress,
     recipient: r.recipient,
@@ -126,6 +127,7 @@ function swapInput(b: Record<string, unknown>): SwapInput {
 
 export function buildRoutes(d: ApiDeps): Route[] {
   const now = d.now ?? Date.now;
+  const view = async (r: PaymentRequest) => requestView(r, await d.service.effectiveStatus(r), d.service.linkExpiresAt(r));
   const lastPoll = new Map<string, number>();
   // Quote-creating endpoints cost a call to NEAR Intents each, so they are rate limited per client.
   const hits = new Map<string, { n: number; reset: number }>();
@@ -225,7 +227,7 @@ export function buildRoutes(d: ApiDeps): Route[] {
           description: str(b, 'description', 200, true) || undefined,
           acknowledgeUncheckedAddress: b.acknowledgeUncheckedAddress === true,
         });
-        return ok(requestView(created), 201);
+        return ok(await view(created), 201);
       }),
     },
     {
@@ -236,7 +238,7 @@ export function buildRoutes(d: ApiDeps): Route[] {
         const rows = await Promise.all(reqs.map(async (r) => {
           const attempts = (await d.repo.listAttempts(r.id)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
           const latest = attempts[0];
-          return { request: requestView(r), latestAttempt: latest ? attemptView(latest) : null };
+          return { request: await view(r), latestAttempt: latest ? attemptView(latest) : null };
         }));
         const pending = rows.filter((x) => x.latestAttempt && !x.latestAttempt.terminal).length;
         return ok({
@@ -254,7 +256,7 @@ export function buildRoutes(d: ApiDeps): Route[] {
         const attempts = await d.repo.listAttemptsByPayer(s.address, 50);
         const items = await Promise.all(attempts.map(async (a) => {
           const r = await d.repo.getRequestById(a.requestId);
-          return { createdAt: a.createdAt, attempt: attemptView(a), request: r ? requestView(r) : null };
+          return { createdAt: a.createdAt, attempt: attemptView(a), request: r ? await view(r) : null };
         }));
         return ok({ items });
       }),
@@ -266,7 +268,7 @@ export function buildRoutes(d: ApiDeps): Route[] {
       handler: safe(async (req) => {
         const r = await d.repo.getRequestBySlug(req.params.slug);
         if (!r) throw new SpendXError('not_found', 'Payment request not found', 404);
-        return ok(requestView(r));
+        return ok(await view(r));
       }),
     },
     {
@@ -298,7 +300,7 @@ export function buildRoutes(d: ApiDeps): Route[] {
       handler: safe(async (req) => {
         throttle(req);
         const { request, attempt } = await d.service.createSwap(swapInput(obj(req.body)));
-        return ok({ request: requestView(request), attempt: attemptView(attempt) }, 201);
+        return ok({ request: await view(request), attempt: attemptView(attempt) }, 201);
       }),
     },
     {
@@ -312,7 +314,7 @@ export function buildRoutes(d: ApiDeps): Route[] {
           a = await d.service.refresh(id);
         }
         const r = await d.repo.getRequestById(a.requestId);
-        return ok({ attempt: attemptView(a), request: r ? requestView(r) : null });
+        return ok({ attempt: attemptView(a), request: r ? await view(r) : null });
       }),
     },
     { method: 'POST', path: '/api/attempts/:id/signing', handler: safe(async (req) => ok(attemptView(await d.service.markSigning(req.params.id)))) },

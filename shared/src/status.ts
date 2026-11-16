@@ -85,7 +85,7 @@ export const STATE_LABEL: Record<PaymentState, string> = {
   payment_initiated: 'Payment initiated',
   source_submitted: 'Source transaction submitted',
   processing: 'Processing cross-chain transfer',
-  destination_confirmed: 'Destination payment confirmed',
+  destination_confirmed: 'Transaction successful',
   incomplete_deposit: 'Deposit incomplete, refund pending',
   refunded: 'Refunded',
   failed: 'Failed',

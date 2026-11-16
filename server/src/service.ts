@@ -21,6 +21,8 @@ export interface ServiceDeps {
   verifiers?: Partial<Record<string, DestinationVerifier>>;
   slippageBps: number;
   deadlineMinutes: number;
+  /** how long a merchant payment link stays usable after it is created (default 30) */
+  linkExpiryMinutes?: number;
   now?: () => number;
 }
 
@@ -124,11 +126,31 @@ export class PaymentService {
     });
   }
 
+  /** When a merchant link stops accepting new payments. Swaps are the payer's own and never expire this way. */
+  linkExpiresAt(r: PaymentRequest): string | null {
+    if (r.kind !== 'payment') return null;
+    return new Date(Date.parse(r.createdAt) + (this.d.linkExpiryMinutes ?? 30) * 60_000).toISOString();
+  }
+
+  /**
+   * The status clients should see. An open link past its expiry reads "expired", unless a payer is mid-payment:
+   * someone who started before the deadline can still finish.
+   */
+  async effectiveStatus(r: PaymentRequest): Promise<PaymentRequest['status'] | 'expired'> {
+    if (r.status !== 'open') return r.status;
+    const expires = this.linkExpiresAt(r);
+    if (!expires || this.now() <= Date.parse(expires)) return 'open';
+    const live = await this.d.repo.getLiveAttempt(r.id);
+    const inFlight = !!live && (live.state !== 'awaiting_payment' || Date.parse(live.quoteDeadline) > this.now());
+    return inFlight ? 'open' : 'expired';
+  }
+
   private async openRequest(slug: string): Promise<PaymentRequest> {
     const req = await this.d.repo.getRequestBySlug(slug);
     if (!req) throw new SpendXError('not_found', 'Payment request not found', 404);
     if (req.status === 'paid') throw new SpendXError('already_paid', 'This payment has already been completed', 409);
     if (req.status === 'cancelled') throw new SpendXError('cancelled', 'This payment request was cancelled', 410);
+    if ((await this.effectiveStatus(req)) === 'expired') throw new SpendXError('expired', 'This payment link has expired. Ask the merchant for a new one.', 410);
     return req;
   }
 

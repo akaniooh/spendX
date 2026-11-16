@@ -20,6 +20,7 @@ function harness() {
   let clock = T0;
   let st: StatusResponse | 'notfound' = 'notfound';
   const repo = new MemoryRepository();
+  repo.now = () => clock; // record timestamps follow the test clock, so link expiry can be tested
   const client = {
     async quote(b: QuoteRequestBody): Promise<QuoteResponse> {
       return {
@@ -154,4 +155,34 @@ test('input validation and error mapping', async () => {
   const err = (await mk({ destAssetId: USDC.assetId, amount: '1', recipient: 'nope' })).body as { error: { code: string } };
   assert.equal(err.error.code, 'invalid_recipient');
   assert.equal((await h.call('GET', '/api/attempts/missing')).status, 404);
+});
+
+test('a payment link expires 30 minutes after it is created', async () => {
+  const h = harness();
+  const auth = await h.login();
+  const created = (await h.call('POST', '/api/merchant/requests', { destAssetId: USDC.assetId, amount: '1', recipient: MERCHANT }, auth)).body as { slug: string; status: string; expiresAt: string };
+  assert.equal(created.status, 'open');
+  assert.equal(Date.parse(created.expiresAt), T0 + 30 * 60_000);
+
+  h.advance(29 * 60_000);
+  assert.equal(((await h.call('GET', `/api/requests/${created.slug}`)).body as { status: string }).status, 'open');
+
+  h.advance(2 * 60_000); // 31 minutes
+  assert.equal(((await h.call('GET', `/api/requests/${created.slug}`)).body as { status: string }).status, 'expired');
+  assert.equal((await h.call('POST', `/api/requests/${created.slug}/preview`, { originAssetId: SOL.assetId, payerAddress: PAYER })).status, 410);
+  assert.equal((await h.call('POST', `/api/requests/${created.slug}/attempts`, { originAssetId: SOL.assetId, payerAddress: PAYER })).status, 410);
+
+  const dash = (await h.call('GET', '/api/merchant/requests', undefined, auth)).body as { requests: { request: { status: string } }[] };
+  assert.equal(dash.requests[0].request.status, 'expired');
+});
+
+test('a payer who started before the link expired can still finish', async () => {
+  const h = harness();
+  const auth = await h.login();
+  const slug = ((await h.call('POST', '/api/merchant/requests', { destAssetId: USDC.assetId, amount: '1', recipient: MERCHANT }, auth)).body as { slug: string }).slug;
+  h.advance(28 * 60_000);
+  const att = (await h.call('POST', `/api/requests/${slug}/attempts`, { originAssetId: SOL.assetId, payerAddress: PAYER })).body as { id: string };
+  await h.call('POST', `/api/attempts/${att.id}/signing`);
+  h.advance(5 * 60_000); // now past 30 minutes, but a payment is in flight
+  assert.equal(((await h.call('GET', `/api/requests/${slug}`)).body as { status: string }).status, 'open');
 });
