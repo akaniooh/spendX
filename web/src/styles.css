@@ -303,6 +303,8 @@ td { padding: var(--s3) var(--s2) var(--s3) 0; vertical-align: top; border-botto
 .wallet-option { margin-top: var(--s2); padding: var(--s3); display: flex; align-items: center; gap: var(--s3); background: var(--surface-2); border-radius: var(--modal-inner-radius); }
 .wallet-option.connected { background: var(--accent-soft); }
 .wallet-option > span { width: 36px; height: 36px; display: grid; place-items: center; color: var(--accent-ink); background: var(--accent); border-radius: 10px; font: 800 14px/1 var(--font-display); }
+.wallet-option > .wallet-icon { background: transparent; overflow: hidden; }
+.wallet-icon img { width: 100%; height: 100%; display: block; object-fit: cover; border-radius: 10px; }
 .wallet-option > div { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .wallet-option strong { font-size: var(--fs-small); }
 .wallet-option small { color: var(--text-3); font-size: var(--fs-caption); overflow: hidden; text-overflow: ellipsis; }

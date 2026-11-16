@@ -5,12 +5,26 @@ import { shortAddr } from '../lib/labels.ts';
 import { errorMessage } from '../lib/errors.ts';
 import { Icon } from './Icon.tsx';
 
-function Row({ mark, name, detail, connected, onConnect, onDisconnect, disabled }: {
-  mark: string; name: string; detail: string; connected: boolean; onConnect: () => void; onDisconnect: () => void; disabled?: boolean;
+const ICON_BASE = '/icons/wallets/';
+
+/** Known wallets get a bundled logo; any other EVM wallet falls back to the icon it announces itself, then to its first letter. */
+function walletIcon(name: string, announced?: string): string | undefined {
+  const n = name.toLowerCase();
+  if (n.includes('metamask')) return `${ICON_BASE}metamask.png`;
+  if (n.includes('rabby')) return `${ICON_BASE}rabby.png`;
+  if (n.includes('phantom')) return `${ICON_BASE}phantom.png`;
+  if (n.includes('near')) return `${ICON_BASE}near.png`;
+  return announced;
+}
+
+function Row({ mark, icon, name, detail, connected, onConnect, onDisconnect, disabled }: {
+  mark: string; icon?: string; name: string; detail: string; connected: boolean; onConnect: () => void; onDisconnect: () => void; disabled?: boolean;
 }) {
   return (
     <div className={`wallet-option ${connected ? 'connected' : ''}`}>
-      <span>{mark}</span>
+      {icon
+        ? <span className="wallet-icon"><img src={icon} alt="" width={36} height={36} /></span>
+        : <span>{mark}</span>}
       <div><strong>{name}</strong><small>{detail}</small></div>
       {connected
         ? <button className="mini-button" onClick={onDisconnect}>Disconnect</button>
@@ -50,7 +64,7 @@ export function WalletModal() {
           {w.evmWallets.length === 0 && <p className="text-3 small">No EVM wallet detected.</p>}
           {w.evmWallets.map((x) => {
             const connected = w.evm?.name === x.name;
-            return <Row key={x.id} mark={x.name.slice(0, 1).toUpperCase()} name={x.name} detail={connected && w.evm ? shortAddr(w.evm.address, 8, 6) : 'Browser wallet'} connected={connected}
+            return <Row key={x.id} mark={x.name.slice(0, 1).toUpperCase()} icon={walletIcon(x.name, x.icon)} name={x.name} detail={connected && w.evm ? shortAddr(w.evm.address, 8, 6) : 'Browser wallet'} connected={connected}
               disabled={busy !== null} onConnect={() => run(x.id, () => w.connectEvm(x.id))} onDisconnect={off('evm')} />;
           })}
         </div>
@@ -58,14 +72,14 @@ export function WalletModal() {
         <div className="wallet-group">
           <h3>Solana</h3>
           {w.phantomAvailable
-            ? <Row mark="P" name="Phantom" detail={w.svm ? shortAddr(w.svm.address, 8, 6) : 'Browser extension'} connected={!!w.svm} disabled={busy !== null}
+            ? <Row mark="P" icon={walletIcon('Phantom')} name="Phantom" detail={w.svm ? shortAddr(w.svm.address, 8, 6) : 'Browser extension'} connected={!!w.svm} disabled={busy !== null}
                 onConnect={() => run('phantom', w.connectSvm)} onDisconnect={off('svm')} />
             : <p className="text-3 small">Phantom not detected.</p>}
         </div>
 
         <div className="wallet-group">
           <h3>NEAR</h3>
-          <Row mark="N" name="NEAR wallet" detail={w.near ? shortAddr(w.near.address, 10, 8) : 'Choose a NEAR wallet'} connected={!!w.near} disabled={busy !== null}
+          <Row mark="N" icon={walletIcon('NEAR')} name="NEAR wallet" detail={w.near ? shortAddr(w.near.address, 10, 8) : 'Choose a NEAR wallet'} connected={!!w.near} disabled={busy !== null}
             onConnect={() => run('near', w.connectNear)} onDisconnect={off('near')} />
         </div>
 
