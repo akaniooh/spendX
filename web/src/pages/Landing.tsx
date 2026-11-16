@@ -65,6 +65,19 @@ const STEPS = [
   { title: 'Watch it arrive', body: 'SpendX follows the transfer to the other side. On Ethereum-style chains and Solana it checks the destination chain itself before calling it paid. If a swap cannot complete, it is refunded to you.' },
 ];
 
+const FAQ = [
+  { q: 'Is this real money?', a: 'Yes. SpendX works on live networks, so every transfer moves real tokens. Check the quote before you approve, and start with a small amount if it is your first time.' },
+  { q: 'What do I need to start?', a: 'A browser wallet for the network you are paying from: an EVM wallet such as MetaMask or Rabby, Phantom for Solana, or a NEAR wallet. You also need the token you want to send and a little of that network\'s coin to cover the transfer fee.' },
+  { q: 'How does paying with a different token work?', a: 'You send one transfer in the token you hold. NEAR Intents converts and bridges it, and the recipient receives the exact amount they asked for, in the token and on the network they chose.' },
+  { q: 'Does SpendX hold my funds or my keys?', a: 'No. Your wallet shows a single transaction and you approve it yourself. SpendX never asks for your private keys or seed phrase.' },
+  { q: 'What happens if a swap cannot complete?', a: 'It is refunded to the address you paid from, and SpendX shows the refund on the payment.' },
+  { q: 'How do I know the money arrived?', a: 'On Ethereum-style chains and Solana, SpendX checks the destination chain itself before calling a payment paid. On other networks it shows that delivery was reported by NEAR Intents, with a link to the transaction.' },
+  { q: 'What does it cost, and how long does it take?', a: 'A live quote shows the estimated cost, the guaranteed minimum you receive and the estimated time before you commit. Your wallet also charges its normal network fee for the transfer.' },
+  { q: 'What if the quote runs out before I pay?', a: 'Each final quote has a countdown, and SpendX only shows a deposit address when the deadline leaves a safe margin. If time runs out, request a fresh quote.' },
+  { q: 'Do I need an account?', a: 'No sign-up. To create payment links you sign in by signing a plain text message with your wallet, which is not a transaction and costs nothing. The person paying just opens the link and connects a wallet.' },
+  { q: 'Which networks and tokens are supported?', a: 'Everything in the Networks list above, read live from the NEAR Intents catalog. When you pay, tokens that are not supported are greyed out with the reason.' },
+];
+
 export function Landing() {
   const [chains, setChains] = useState<CatalogChain[] | null>(null);
   const [assistant, setAssistant] = useState(false);
@@ -142,6 +155,18 @@ export function Landing() {
         <div className="lp-actions">
           <a className="lp-secondary" href="https://docs.near-intents.org/" target="_blank" rel="noreferrer noopener">NEAR Intents docs<Icon name="external" size={16} /></a>
           <a className="lp-secondary" href="https://explorer.near-intents.org/" target="_blank" rel="noreferrer noopener">Intents explorer<Icon name="external" size={16} /></a>
+        </div>
+      </section>
+
+      <section className="lp-section" id="faq">
+        <h2>Questions</h2>
+        <div className="lp-faq-list">
+          {FAQ.map((f) => (
+            <details key={f.q}>
+              <summary>{f.q}</summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
         </div>
       </section>
 

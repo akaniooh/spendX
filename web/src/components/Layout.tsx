@@ -44,6 +44,7 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
             <button onClick={() => scrollToSection('payments')}>Features</button>
             <button onClick={() => scrollToSection('networks')}>Networks</button>
             <button onClick={() => scrollToSection('built-on')}>Built on NEAR Intents</button>
+            <button onClick={() => scrollToSection('faq')}>FAQ</button>
           </nav>
           <div className="topbar-end"><a className="lp-launch" href="#/swap">Launch app</a></div>
         </header>
