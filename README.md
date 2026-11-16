@@ -315,7 +315,6 @@ If `npm ci` fails on a lockfile mismatch, regenerate the lockfile with `npx npm@
 ### Real funds (mainnet, small amounts)
 
 NEAR Intents has **no testnet**, so a real payment uses real tokens. Use about 1 USDC and a recipient address you control.
-Not yet recorded end to end; this section will be updated with real transaction hashes.
 
 7. Click **Continue to final quote**. *Expected:* a Final quote card with the exact amount, deposit address, your refund address and a countdown. Nothing is sent yet.
 8. Click **Approve in wallet and pay ...** and approve. *Expected:* your wallet shows one transfer to the deposit address, then the status page opens.
