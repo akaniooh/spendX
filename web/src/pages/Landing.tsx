@@ -104,7 +104,7 @@ export function Landing() {
       </section>
 
       <section className="lp-section" id="payments">
-        <h2>Two ways to use it</h2>
+        <h2>{assistant ? 'Three' : 'Two'} ways to use it</h2>
         <div className="lp-features">
           <article>
             <h3>Swap across chains</h3>
@@ -128,7 +128,7 @@ export function Landing() {
 
       <section className="lp-section" id="networks">
         <h2>Networks</h2>
-        {stats && <p className="lp-lead">{stats.networks} networks and {stats.tokens} tokens, read live from the NEAR Intents catalog. New ones appear automatically.</p>}
+        {stats && <p className="lp-lead">{stats.networks} networks and {stats.tokens} tokens, read live from the NEAR Intents catalog.</p>}
         <ul className="lp-chains">
           {chains === null
             ? Array.from({ length: 12 }, (_, i) => <li key={i}><Skeleton w="110px" h="36px" /></li>)
