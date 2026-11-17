@@ -7,6 +7,7 @@ import { validateAddress } from '../../../shared/src/addresses.ts';
 import { useWallets } from '../wallets/WalletContext.tsx';
 import { ChainIcon, Icon, Skeleton, TokenIcon } from '../components/Icon.tsx';
 import { IconSelect } from '../components/IconSelect.tsx';
+import { correctedNow, mmss, secondsLeft } from '../lib/clock.ts';
 
 const linkFor = (slug: string) => `${window.location.origin}/#/pay/${slug}`;
 
@@ -181,6 +182,17 @@ function CreateRequest({ token, chains, stats, onCreated }: { token: string; cha
   );
 }
 
+/** Live countdown to a payment link's expiry (uses the server-corrected clock). */
+function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
+  const [left, setLeft] = useState(() => secondsLeft(expiresAt, correctedNow()));
+  useEffect(() => {
+    setLeft(secondsLeft(expiresAt, correctedNow()));
+    const id = setInterval(() => setLeft(secondsLeft(expiresAt, correctedNow())), 1000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+  return <div className="muted">{left > 0 ? `Expires in ${mmss(left)}` : 'Expiring…'}</div>;
+}
+
 function History({ data, err }: { data: MerchantData | null; err: string | null }) {
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [actionErr, setActionErr] = useState<string | null>(null);
@@ -229,7 +241,7 @@ function History({ data, err }: { data: MerchantData | null; err: string | null 
                           {a ? <>{' '}<a href={`#/attempt/${a.id}`}>Payment</a></> : null}
                         </>
                       )}
-                      {active && r.expiresAt ? <div className="muted">Expires {new Date(r.expiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div> : null}
+                      {active && r.expiresAt ? <ExpiryCountdown expiresAt={r.expiresAt} /> : null}
                     </td>
                   </tr>
                 );

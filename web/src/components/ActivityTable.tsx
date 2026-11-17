@@ -80,6 +80,8 @@ export function ActivityTable({ limit }: { limit?: number }) {
         fixed: true,
         known: r.status === 'paid' || a?.state === 'destination_confirmed'
           ? { label: 'Paid', kind: 'ok' }
+          : r.status === 'cancelled' ? { label: 'Cancelled', kind: 'bad' }
+          : r.status === 'expired' ? { label: 'Expired', kind: 'bad' }
           : a ? { label: a.stateLabel, kind: a.terminal ? 'bad' : 'pending' } : { label: 'No payment yet', kind: 'pending' },
       }));
       setRemote([...merchantRows, ...items.filter((i) => i.request).map((i): Row => {
