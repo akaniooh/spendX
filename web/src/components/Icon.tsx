@@ -36,8 +36,8 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
 
 // Official artwork supplied for these networks and tokens lives in web/public/icons (square PNGs, already round).
 // Anything not listed falls back to a coloured disc with a letter. To add one, drop `<name>.png` in that folder and list it here.
-const CHAIN_IMAGES: Record<string, string> = { eth: 'eth', base: 'base', sol: 'sol', near: 'near', btc: 'btc', op: 'op', pol: 'pol', arb: 'arb', avax: 'avax' };
-const TOKEN_IMAGES: Record<string, string> = { ETH: 'eth', WETH: 'eth', SOL: 'sol', NEAR: 'near', WNEAR: 'near', USDC: 'usdc', USDT: 'usdt', BTC: 'btc', WBTC: 'btc', OP: 'op', POL: 'pol', MATIC: 'pol', ARB: 'arb', AVAX: 'avax', WAVAX: 'avax' };
+const CHAIN_IMAGES: Record<string, string> = { eth: 'eth', base: 'base', sol: 'sol', near: 'near', btc: 'btc', op: 'op', pol: 'pol', arb: 'arb', avax: 'avax', bsc: 'bnb', gnosis: 'gnosis', scroll: 'scroll', aptos: 'aptos', bera: 'bera', monad: 'monad', plasma: 'plasma', xlayer: 'xlayer', ton: 'ton', sui: 'sui', tron: 'tron', stellar: 'stellar', starknet: 'starknet', xrp: 'xrp', zec: 'zec', ltc: 'ltc', doge: 'doge', cardano: 'cardano', bch: 'bch', aleo: 'aleo', adi: 'adi' };
+const TOKEN_IMAGES: Record<string, string> = { ETH: 'eth', WETH: 'eth', SOL: 'sol', NEAR: 'near', WNEAR: 'near', USDC: 'usdc', USDT: 'usdt', BTC: 'btc', WBTC: 'btc', OP: 'op', POL: 'pol', MATIC: 'pol', ARB: 'arb', AVAX: 'avax', WAVAX: 'avax', BNB: 'bnb', WBNB: 'bnb', GNO: 'gnosis', APT: 'aptos', BERA: 'bera', WBERA: 'bera', MON: 'monad', WMON: 'monad', XPL: 'plasma', WXPL: 'plasma', OKB: 'xlayer', TON: 'ton', SUI: 'sui', TRX: 'tron', XLM: 'stellar', STRK: 'starknet', XRP: 'xrp', ZEC: 'zec', LTC: 'ltc', DOGE: 'doge', ADA: 'cardano', BCH: 'bch', ALEO: 'aleo', ADI: 'adi' };
 const iconUrl = (name: string) => `/icons/${name}.png`;
 
 export function ChainIcon({ chain, small = false }: { chain: string; small?: boolean }) {

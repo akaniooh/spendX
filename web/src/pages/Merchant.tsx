@@ -215,12 +215,20 @@ function History({ data, err }: { data: MerchantData | null; err: string | null 
                     <td>{chip(a, r.status)}</td>
                     <td>
                       {active ? (
+                        <span className="row" style={{ gap: 'var(--s1)', alignItems: 'center' }}>
+                          <span className="muted">pending</span>
+                          <button type="button" className="icon-button" style={{ width: 28, height: 28 }} aria-label={copiedSlug === r.slug ? 'Copied' : 'Copy link'} title={copiedSlug === r.slug ? 'Copied' : 'Copy link'} onClick={() => copy(r.slug)}>
+                            <Icon name={copiedSlug === r.slug ? 'check' : 'copy'} size={16} />
+                          </button>
+                        </span>
+                      ) : r.status === 'paid' ? (
+                        <a href={a ? `#/attempt/${a.id}` : '#/activity'}>paid</a>
+                      ) : (
                         <>
-                          <button type="button" className="link" onClick={() => copy(r.slug)}>{copiedSlug === r.slug ? 'Copied' : 'Copy link'}</button>
-                          {' · '}<a href={`#/pay/${r.slug}`}>Open</a>
+                          <span className="muted">{r.status === 'expired' ? 'Link expired' : 'Link closed'}</span>
+                          {a ? <>{' '}<a href={`#/attempt/${a.id}`}>Payment</a></> : null}
                         </>
-                      ) : <span className="muted">{r.status === 'paid' ? 'Link closed (paid)' : r.status === 'expired' ? 'Link expired' : 'Link closed'}</span>}
-                      {a ? <>{active ? ' · ' : ' '}<a href={`#/attempt/${a.id}`}>Payment</a></> : null}
+                      )}
                       {active && r.expiresAt ? <div className="muted">Expires {new Date(r.expiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div> : null}
                     </td>
                   </tr>
