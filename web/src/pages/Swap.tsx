@@ -267,7 +267,7 @@ export function Swap() {
 
       <section className="recent">
         <div className="section-head"><h2>Recent activity</h2><a className="link-button" href="#/activity">View all <Icon name="chevron" size={16} /></a></div>
-        <ActivityTable limit={5} />
+        <ActivityTable limit={5} swapsOnly />
       </section>
 
       {final && from && to && (

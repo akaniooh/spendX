@@ -6,6 +6,8 @@ import type { ConnectableFamily } from '../wallets/WalletContext.tsx';
 import { useWallets } from '../wallets/WalletContext.tsx';
 import { ChainIcon, Icon, Skeleton } from './Icon.tsx';
 
+const PAGE_SIZE = 10;
+
 type Known = { label: string; kind: string };
 
 function StatusChip({ id, known, fixed }: { id: string; known?: Known; fixed?: boolean }) {
@@ -32,12 +34,14 @@ function mergeRows(remote: Row[], local: HistoryEntry[]): Row[] {
   return [...remote, ...local].filter((r) => !seen.has(r.attemptId) && !!seen.add(r.attemptId)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export function ActivityTable({ limit }: { limit?: number }) {
+/** `swapsOnly` hides payment links and payments (the swap tab's short list); the Activity page shows everything. */
+export function ActivityTable({ limit, swapsOnly = false }: { limit?: number; swapsOnly?: boolean }) {
   const { sessions, evm, svm, near, signIn, syncing, openWalletModal } = useWallets();
   const [remote, setRemote] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
   const [signing, setSigning] = useState<ConnectableFamily | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const evmAddr = evm?.address ?? null;
   const svmAddr = svm?.address ?? null;
@@ -109,7 +113,16 @@ export function ActivityTable({ limit }: { limit?: number }) {
     return () => { off = true; };
   }, [sessionKey]);
 
-  const rows = useMemo(() => mergeRows(remote, local).slice(0, limit ?? 50), [remote, local, limit]);
+  // With `limit` (the short list under the swap form) show just the newest rows. Without it (Activity page) paginate.
+  const allRows = useMemo(() => {
+    const merged = mergeRows(remote, local);
+    return swapsOnly ? merged.filter((r) => !r.kind || r.kind === 'swap') : merged;
+  }, [remote, local, swapsOnly]);
+  const paged = limit === undefined;
+  const pageCount = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+  const current = Math.min(page, pageCount);
+  const rows = paged ? allRows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE) : allRows.slice(0, limit);
+  useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
 
   async function doSignIn(family: ConnectableFamily) {
     setSigning(family);
@@ -181,6 +194,17 @@ export function ActivityTable({ limit }: { limit?: number }) {
           </a>
         ))}
       </div>
+      {paged && pageCount > 1 && (
+        <nav className="pager" aria-label="Activity pages">
+          <button type="button" className="pager-btn" onClick={() => setPage(current - 1)} disabled={current === 1} aria-label="Previous page">
+            <span style={{ display: 'inline-flex', transform: 'rotate(180deg)' }}><Icon name="chevron" size={16} /></span>
+          </button>
+          <span className="pager-info">Page {current} of {pageCount}</span>
+          <button type="button" className="pager-btn" onClick={() => setPage(current + 1)} disabled={current === pageCount} aria-label="Next page">
+            <Icon name="chevron" size={16} />
+          </button>
+        </nav>
+      )}
     </>
   );
 }

@@ -235,6 +235,10 @@ button.flip:hover { color: var(--text); background: var(--surface-3); }
 .table-head, .table-row { padding: 0 var(--s5); display: grid; grid-template-columns: 1.6fr 1fr 1fr 1.1fr 16px; align-items: center; gap: var(--s4); }
 .table-head { height: 44px; color: var(--text-3); font-size: var(--fs-caption); font-weight: 600; border-bottom: 1px solid var(--line); }
 .table-row { min-height: 64px; color: var(--text-2); font-size: var(--fs-small); transition: background .15s; }
+.pager { margin-top: var(--s4); display: flex; align-items: center; justify-content: center; gap: var(--s4); color: var(--text-3); font-size: var(--fs-small); }
+.pager-btn { width: 36px; height: 36px; display: grid; place-items: center; color: var(--text-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--control-radius); transition: background .15s, color .15s; }
+.pager-btn:hover:not(:disabled) { color: var(--text); background: var(--surface-2); }
+.pager-btn:disabled { opacity: .4; cursor: not-allowed; }
 .table-row + .table-row { border-top: 1px solid var(--line); }
 .table-row:hover { background: var(--surface-2); }
 .table-row strong { color: var(--text); font-weight: 600; }
