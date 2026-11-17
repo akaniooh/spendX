@@ -39,6 +39,9 @@ export interface ApiDeps {
   log?: (msg: string, err?: unknown) => void;
 }
 
+/** Most recent swaps and payments returned for a wallet's activity (the Activity page pages through them 10 at a time). */
+const ACTIVITY_LIMIT = 150;
+
 // ---------- views (what clients see; bigint never leaves as a number) ----------
 
 export function requestView(r: PaymentRequest, status: PaymentRequest['status'] | 'expired' = r.status, expiresAt: string | null = null) {
@@ -253,7 +256,7 @@ export function buildRoutes(d: ApiDeps): Route[] {
       method: 'GET', path: '/api/activity',
       handler: safe(async (req) => {
         const s = requireSession(d.auth, req.headers.authorization);
-        const attempts = await d.repo.listAttemptsByPayer(s.address, 50);
+        const attempts = await d.repo.listAttemptsByPayer(s.address, ACTIVITY_LIMIT);
         const items = await Promise.all(attempts.map(async (a) => {
           const r = await d.repo.getRequestById(a.requestId);
           return { createdAt: a.createdAt, attempt: attemptView(a), request: r ? await view(r) : null };
