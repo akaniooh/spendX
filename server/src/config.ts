@@ -2,6 +2,9 @@ export interface Config {
   port: number;
   oneClickBaseUrl: string;
   oneClickApiKey?: string;
+  /** optional CoinGecko key and base url for chain/token logos (a free demo key works; without one the public rate limit applies) */
+  coingeckoApiKey?: string;
+  coingeckoBaseUrl?: string;
   slippageBps: number;
   deadlineMinutes: number;
   /** minutes a merchant payment link stays usable */
@@ -117,6 +120,8 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     port: num('PORT', 8787, 1, 65535),
     oneClickBaseUrl: env.ONECLICK_BASE_URL || 'https://1click.chaindefuser.com',
     oneClickApiKey: env.ONECLICK_API_KEY || undefined,
+    coingeckoApiKey: env.COINGECKO_API_KEY || undefined,
+    coingeckoBaseUrl: checkBaseUrl('COINGECKO_BASE_URL', env.COINGECKO_BASE_URL),
     slippageBps: num('SLIPPAGE_BPS', 100, 1, 1000),
     deadlineMinutes: num('QUOTE_DEADLINE_MINUTES', 10, 3, 60),
     linkExpiryMinutes: num('LINK_EXPIRY_MINUTES', 30, 1, 10080),

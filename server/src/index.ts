@@ -12,6 +12,8 @@ import { securityHeaders } from './security.ts';
 import { solanaRpcProxyRoute } from './solana-rpc-proxy.ts';
 import { createNearSignatureVerifier, verifyEvmSignature, verifySolanaSignature } from './auth.ts';
 import { CatalogCache } from './catalog.ts';
+import { IconCache, iconsRoute } from './icons.ts';
+import { PriceHistoryCache, priceHistoryRoute } from './price-history.ts';
 import { loadConfig } from './config.ts';
 import { MemoryRepository } from './repo-memory.ts';
 import { SupabaseRepository } from './repo-supabase.ts';
@@ -55,6 +57,10 @@ const routes = buildRoutes({
 });
 
 // The browser reads Solana through this route so the provider key in SOLANA_RPC_URL never leaves the server.
+// Chain and token logos from CoinGecko (cached). The web app falls back to its own PNGs when this has nothing.
+routes.push(iconsRoute(new IconCache({ apiKey: cfg.coingeckoApiKey, baseUrl: cfg.coingeckoBaseUrl, log: (m, e) => console.warn(m, e) }), catalog));
+// Hourly price history (symbols only) for the Portfolio chart, from the same CoinGecko source and key as the logos.
+routes.push(priceHistoryRoute(new PriceHistoryCache({ apiKey: cfg.coingeckoApiKey, baseUrl: cfg.coingeckoBaseUrl, log: (m, e) => console.warn(m, e) })));
 routes.push(solanaRpcProxyRoute({ rpcUrl: cfg.solanaRpcUrl, log: (m) => console.warn(m) }));
 
 const app = express();
@@ -64,7 +70,8 @@ if (cfg.trustProxy > 0) app.set('trust proxy', cfg.trustProxy);
 const headers = securityHeaders({ production: process.env.NODE_ENV === 'production', enforceCsp: cfg.cspEnforce });
 app.use((req, res, next) => {
   for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-  if (req.path.startsWith('/api/') && req.path !== '/api/catalog') res.setHeader('Cache-Control', 'no-store'); // payment status must always be fresh (the big token list may be cached)
+  if (req.path === '/api/icons') res.setHeader('Cache-Control', 'public, max-age=3600'); // logos change rarely
+  else if (req.path.startsWith('/api/') && req.path !== '/api/catalog') res.setHeader('Cache-Control', 'no-store'); // payment status must always be fresh (the big token list may be cached)
   next();
 });
 app.use(express.json({ limit: '32kb' })); // after the headers, so even a bad-JSON error response carries them
