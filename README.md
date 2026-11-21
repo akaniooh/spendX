@@ -6,6 +6,7 @@ and chain they already hold. NEAR Intents routes and settles the transfer, and S
 where it can, checks that delivery on the destination chain itself.
 
 > **Status: hackathon build (NEAR HACKATHON 2026).** This README describes what the code does today.
+> Rows marked *not yet implemented* or *not yet tested with real funds* are exactly that.
 
 ---
 
@@ -189,16 +190,16 @@ Supported wallet families: **Solana, EVM and NEAR**. Merchants can request payme
 | --- | --- |
 | 1Click client, dynamic catalog, exact-output and exact-input quotes, live-quote validation, signature check | Implemented. Tokens and dry quotes verified against the live API |
 | Payment service (requests, previews, attempts, deposits, status, refunds, expiry, duplicate protection, background reconciler) | Implemented, unit-tested |
-| Merchant sign-in by wallet signature (EVM and Solana) | Implemented. Solana tested with real keys; EVM have also been exercised with a real wallet |
+| Merchant sign-in by wallet signature (EVM and Solana) | Implemented. Solana tested with real keys; EVM not yet exercised with a real wallet |
 | Merchant sign-in with a NEAR wallet (NEP-413) | *Not yet implemented* (sign in with EVM or Solana; you can still receive on NEAR) |
 | REST API and Express server | Implemented and deployed (Render API, Vercel site) |
 | Web app: landing page, swap workspace, payment screen, wallet modal, review modal, activity, merchant dashboard, live status tracker | Implemented and running in the browser |
 | Solana balance and token reads through the server proxy | Implemented and confirmed working in the deployed setup |
-| One-click **Swap** (exact input, delivered to your own address) | Implemented end to end; tested with real funds |
-| Paying from **EVM wallets**: native and ERC-20 on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Gnosis, Scroll | Implemented; tested with real funds |
-| Paying from **Phantom (Solana)**: native SOL and classic SPL tokens (creates the recipient's token account when missing) | Implemented; tested with real funds. Token-2022 mints are refused on purpose (they can carry transfer fees or hooks) |
-| Paying from a **NEAR wallet**: NEP-141 tokens, including one-time storage registration | Implemented; adapter logic unit-tested against a fake NEAR RPC; tested with real wallet and funds too* |
-| Independent delivery verification on **EVM and Solana** destinations | Implemented; tested against simulated chain responses (correct, wrong recipient, too little, reverted, not yet visible); ran against live chains |
+| One-click **Swap** (exact input, delivered to your own address) | Implemented end to end; *not yet exercised with real funds* |
+| Paying from **EVM wallets**: native and ERC-20 on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Gnosis, Scroll | Implemented; *not yet tested with real funds* |
+| Paying from **Phantom (Solana)**: native SOL and classic SPL tokens (creates the recipient's token account when missing) | Implemented; *not yet tested with real funds*. Token-2022 mints are refused on purpose (they can carry transfer fees or hooks) |
+| Paying from a **NEAR wallet**: NEP-141 tokens, including one-time storage registration | Implemented; adapter logic unit-tested against a fake NEAR RPC; *not yet run with a real wallet or funds* |
+| Independent delivery verification on **EVM and Solana** destinations | Implemented; tested against simulated chain responses (correct, wrong recipient, too little, reverted, not yet visible); *not yet run against live chains* |
 | Delivery verification for **NEAR** and other destinations | *Not available*: shown as "reported by NEAR Intents" with the transaction link |
 | AI assistant (swap sentence to a pre-filled card; balance questions; pasted payment links open directly) | Implemented, unit-tested with simulated replies. Works with Anthropic or any OpenAI-compatible endpoint, with an optional fallback model. Hidden unless a key is set |
 | Supabase storage | Required in production (the server refuses `REPOSITORY=memory`). Check a connection with `npm run db:check` |
@@ -252,6 +253,7 @@ Copy `.env.example` to `.env`. **Never commit `.env`**, and never put a secret i
 | `SOLANA_RPC_URL` | No | Solana RPC for delivery checks **and** the `/api/solana-rpc` proxy the browser uses. A keyed URL (for example Helius) belongs here, never in a `VITE_` variable. |
 | `RPC_URL_<CHAIN>` | No | Per-chain RPC for delivery checks, for example `RPC_URL_BASE`. EVM chains default to viem's public RPC. |
 | `ONECLICK_API_KEY` | No | Free from <https://partners.near-intents.org>. Without it an extra 0.25% fee applies to live quotes. |
+| `COINGECKO_API_KEY` | No | Free demo key from CoinGecko. Chain and token logos are fetched from CoinGecko by the server and cached for 12 hours; without a key the public rate limit applies. Anything CoinGecko lacks falls back to the PNGs in `web/public/icons`, then a letter disc. |
 | `ONECLICK_BASE_URL` | No | Override the 1Click API base URL. |
 | `TRUST_PROXY` | Behind a proxy | Number of proxy hops to trust so rate limits see the real client IP (`1` for Render alone, `2` for Vercel in front of Render). |
 | `SLIPPAGE_BPS` | No | Default swap slippage in basis points (default 100 = 1%). |
@@ -314,6 +316,7 @@ If `npm ci` fails on a lockfile mismatch, regenerate the lockfile with `npx npm@
 ### Real funds (mainnet, small amounts)
 
 NEAR Intents has **no testnet**, so a real payment uses real tokens. Use about 1 USDC and a recipient address you control.
+Not yet recorded end to end; this section will be updated with real transaction hashes.
 
 7. Click **Continue to final quote**. *Expected:* a Final quote card with the exact amount, deposit address, your refund address and a countdown. Nothing is sent yet.
 8. Click **Approve in wallet and pay ...** and approve. *Expected:* your wallet shows one transfer to the deposit address, then the status page opens.
