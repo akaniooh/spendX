@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api.ts';
 import type { AttemptView, CatalogChain, CatalogToken, RequestView } from '../lib/types.ts';
-import { chainLabel, shortAddr, tokenOptionLabel } from '../lib/labels.ts';
+import { chainLabel, formatTokenPrice, shortAddr, tokenOptionLabel } from '../lib/labels.ts';
 import { errorMessage } from '../lib/errors.ts';
 import { validateAddress } from '../../../shared/src/addresses.ts';
 import { useWallets } from '../wallets/WalletContext.tsx';
 import { ChainIcon, Icon, Skeleton, TokenIcon } from '../components/Icon.tsx';
 import { IconSelect } from '../components/IconSelect.tsx';
-import { correctedNow, mmss, secondsLeft } from '../lib/clock.ts';
+import { Countdown } from '../components/Countdown.tsx';
+import { ShareLink } from '../components/ShareLink.tsx';
+import { shareText } from '../lib/share.ts';
 
 const linkFor = (slug: string) => `${window.location.origin}/#/pay/${slug}`;
 
@@ -91,24 +93,26 @@ function CreateRequest({ token, chains, stats, onCreated }: { token: string; cha
 
         <span className="eyebrow m-label">Amount</span>
         <div className="m-box m-amount">
-          <input inputMode="decimal" aria-label={`Amount${tok ? ` in ${tok.symbol}` : ''}`} placeholder="0.00" value={amount} onChange={(e) => edit(setAmount)(e.target.value.trim())} />
-          <IconSelect className="token-select" alignRight ariaLabel="Token" value={tok?.assetId ?? ''} disabled={!current}
-            placeholder={current ? 'Select token' : 'Pick a network'} placeholderIcon={<span className="token-icon empty">?</span>}
-            options={(current?.tokens ?? []).map((t) => ({
-              value: t.assetId, label: tokenOptionLabel(t),
-              icon: <TokenIcon symbol={t.symbol} chain={chain} small plain={t.duplicateSymbol} />,
-              selectedIcon: <TokenIcon symbol={t.symbol} chain={chain} plain={t.duplicateSymbol} />,
-            }))}
-            onChange={(id) => { edit(setTok)(current?.tokens.find((t) => t.assetId === id) ?? null); setAck(false); }} />
+          <div className="m-amount-row">
+            <input inputMode="decimal" aria-label={`Amount${tok ? ` in ${tok.symbol}` : ''}`} placeholder="0.00" value={amount} onChange={(e) => edit(setAmount)(e.target.value.trim())} />
+            <IconSelect className="token-select" alignRight ariaLabel="Token" value={tok?.assetId ?? ''} disabled={!current}
+              placeholder={current ? 'Select token' : 'Pick a network'} placeholderIcon={<span className="token-icon empty">?</span>}
+              options={(current?.tokens ?? []).map((t) => ({
+                value: t.assetId, label: tokenOptionLabel(t), detail: formatTokenPrice(t.price) || undefined,
+                icon: <TokenIcon symbol={t.symbol} chain={chain} small plain={t.duplicateSymbol} />,
+                selectedIcon: <TokenIcon symbol={t.symbol} chain={chain} plain={t.duplicateSymbol} />,
+              }))}
+              onChange={(id) => { edit(setTok)(current?.tokens.find((t) => t.assetId === id) ?? null); setAck(false); }} />
+          </div>
+          <div className="asset-bottom">
+            <IconSelect className="chain-select-wrap" arrowSize={14} ariaLabel="Settle to network" value={chain}
+              placeholder="Select network" placeholderIcon={<span className="chain-icon small empty">?</span>}
+              options={chains.map((c) => ({ value: c.blockchain, label: chainLabel(c.blockchain), icon: <ChainIcon chain={c.blockchain} small /> }))}
+              onChange={(v) => { setChain(v); edit(setTok)(null); setAck(false); }} />
+          </div>
         </div>
         {tok && amount && /^\d+\.\d+$/.test(amount) && amount.split('.')[1].length > tok.decimals && <small className="warn m-note">{tok.symbol} supports at most {tok.decimals} decimal places.</small>}
         {tok?.duplicateSymbol && <small className="warn m-note">Another token on this network shares the symbol {tok.symbol}. Check the contract before continuing.</small>}
-
-        <span className="eyebrow m-label">Settle to</span>
-        <IconSelect className="m-box m-select" ariaLabel="Settle to network" value={chain}
-          placeholder="Select a network" placeholderIcon={<span className="chain-icon small empty">?</span>}
-          options={chains.map((c) => ({ value: c.blockchain, label: chainLabel(c.blockchain), icon: <ChainIcon chain={c.blockchain} small /> }))}
-          onChange={(v) => { setChain(v); edit(setTok)(null); setAck(false); }} />
 
         <span className="eyebrow m-label">Recipient address{chain ? ` on ${chainLabel(chain)}` : ''}</span>
         <div className="m-box m-input">
@@ -155,11 +159,12 @@ function CreateRequest({ token, chains, stats, onCreated }: { token: string; cha
             <span className="muted">Settles on</span>
             {chain ? <strong><ChainIcon chain={chain} small />{chainLabel(chain)}</strong> : <span className="muted">Not chosen yet</span>}
           </div>
-          {created?.expiresAt && created.status === 'open' && <div className="m-preview-row"><span className="muted">Expires</span><strong>{new Date(created.expiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong></div>}
+          {created?.expiresAt && created.status === 'open' && <div className="m-preview-row"><span className="muted">Expires in</span><strong><Countdown until={created.expiresAt} prefix="" /></strong></div>}
           <div className="m-linkfield">
             <span className={url ? 'mono' : 'muted'}>{url ?? 'Your link appears here'}</span>
             <button type="button" className="icon-button" aria-label={copied ? 'Copied' : 'Copy link'} disabled={!url} onClick={copy}><Icon name={copied ? 'check' : 'copy'} size={18} /></button>
           </div>
+          {created && url && <ShareLink url={url} text={shareText(created.destination.amountFormatted, created.destination.symbol, created.description)} />}
           {created && (
             <div className="row m-preview-actions">
               <a className="btn" href={`#/pay/${created.slug}`}>Open payment page</a>
@@ -180,17 +185,6 @@ function CreateRequest({ token, chains, stats, onCreated }: { token: string; cha
       </div>
     </div>
   );
-}
-
-/** Live countdown to a payment link's expiry (uses the server-corrected clock). */
-function ExpiryCountdown({ expiresAt }: { expiresAt: string }) {
-  const [left, setLeft] = useState(() => secondsLeft(expiresAt, correctedNow()));
-  useEffect(() => {
-    setLeft(secondsLeft(expiresAt, correctedNow()));
-    const id = setInterval(() => setLeft(secondsLeft(expiresAt, correctedNow())), 1000);
-    return () => clearInterval(id);
-  }, [expiresAt]);
-  return <div className="muted">{left > 0 ? `Expires in ${mmss(left)}` : 'Expiring…'}</div>;
 }
 
 function History({ data, err }: { data: MerchantData | null; err: string | null }) {
@@ -241,7 +235,7 @@ function History({ data, err }: { data: MerchantData | null; err: string | null 
                           {a ? <>{' '}<a href={`#/attempt/${a.id}`}>Payment</a></> : null}
                         </>
                       )}
-                      {active && r.expiresAt ? <ExpiryCountdown expiresAt={r.expiresAt} /> : null}
+                      {active && r.expiresAt ? <div className="muted"><Countdown until={r.expiresAt} /></div> : null}
                     </td>
                   </tr>
                 );

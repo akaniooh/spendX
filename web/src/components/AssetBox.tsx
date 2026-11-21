@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { chainLabel, tokenOptionLabel } from '../lib/labels.ts';
+import { chainLabel, formatTokenPrice, tokenOptionLabel } from '../lib/labels.ts';
 import type { CatalogChain, CatalogToken } from '../lib/types.ts';
 import { ChainIcon, TokenIcon } from './Icon.tsx';
 import { IconSelect } from './IconSelect.tsx';
@@ -29,7 +29,7 @@ export function AssetBox(p: Props) {
         <IconSelect className="token-select" alignRight ariaLabel={`${p.label}: token`} value={p.token?.assetId ?? ''} disabled={!current}
           placeholder={current ? 'Select token' : 'Select network'} placeholderIcon={<span className="token-icon empty">?</span>}
           options={(current?.tokens ?? []).map((t) => ({
-            value: t.assetId, label: tokenOptionLabel(t), disabledReason: p.tokenDisabled?.(t, current!) ?? null,
+            value: t.assetId, label: tokenOptionLabel(t), detail: formatTokenPrice(t.price) || undefined, disabledReason: p.tokenDisabled?.(t, current!) ?? null,
             icon: <TokenIcon symbol={t.symbol} chain={p.chain} small plain={t.duplicateSymbol} />,
             selectedIcon: <TokenIcon symbol={t.symbol} chain={p.chain} plain={t.duplicateSymbol} />,
           }))}

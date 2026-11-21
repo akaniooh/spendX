@@ -3,6 +3,7 @@ export type Route =
   | { name: 'payments' }
   | { name: 'swap' }
   | { name: 'pay'; slug: string }
+  | { name: 'portfolio' }
   | { name: 'activity' }
   | { name: 'attempt'; id: string }
   | { name: 'merchant' }
@@ -15,6 +16,7 @@ export function matchRoute(hash: string): Route {
   if (seg.length === 0) return { name: 'home' };
   if (seg.length === 1 && seg[0] === 'payments') return { name: 'payments' };
   if (seg.length === 1 && seg[0] === 'swap') return { name: 'swap' };
+  if (seg.length === 1 && seg[0] === 'portfolio') return { name: 'portfolio' };
   if (seg.length === 1 && seg[0] === 'activity') return { name: 'activity' };
   if (seg.length === 1 && seg[0] === 'merchant') return { name: 'merchant' };
   if (seg.length === 2 && seg[0] === 'pay' && /^[A-Za-z0-9_-]{8,64}$/.test(seg[1])) return { name: 'pay', slug: seg[1] };

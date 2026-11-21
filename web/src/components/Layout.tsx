@@ -11,6 +11,7 @@ const NAV: { label: string; href: string; names: Route['name'][] }[] = [
   { label: 'Swap', href: '#/swap', names: ['swap'] },
   { label: 'Payments', href: '#/payments', names: ['payments', 'pay'] },
   { label: 'Merchant', href: '#/merchant', names: ['merchant'] },
+  { label: 'Portfolio', href: '#/portfolio', names: ['portfolio'] },
   { label: 'Activity', href: '#/activity', names: ['activity', 'attempt'] },
 ];
 

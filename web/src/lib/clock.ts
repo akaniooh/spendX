@@ -29,3 +29,12 @@ export function secondsLeft(deadlineIso: string, now: number): number {
 }
 
 export const mmss = (s: number): string => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+/** A live countdown: 12:34 under an hour, 1:02:03 above it. */
+export function countdownLabel(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  if (s < 3600) return mmss(s);
+  const h = Math.floor(s / 3600);
+  const rest = s % 3600;
+  return `${h}:${String(Math.floor(rest / 60)).padStart(2, '0')}:${String(rest % 60).padStart(2, '0')}`;
+}

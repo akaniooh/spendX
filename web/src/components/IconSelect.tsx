@@ -9,6 +9,8 @@ export interface IconOption {
   icon: ReactNode;
   /** shown on the closed control when this option is selected (defaults to `icon`) */
   selectedIcon?: ReactNode;
+  /** small text at the right of the row in the list (a token's price, for example) */
+  detail?: string;
   /** a reason string disables the option and is shown beside it */
   disabledReason?: string | null;
 }
@@ -104,6 +106,7 @@ export function IconSelect({ value, options, onChange, ariaLabel, placeholder, p
               onMouseDown={(e) => e.preventDefault()} onMouseEnter={() => enabled(i) && setActive(i)} onClick={() => choose(i)}>
               {o.icon}
               <span className="isel-label">{o.label}{o.disabledReason ? <small> ({o.disabledReason})</small> : null}</span>
+              {o.detail ? <span className="isel-price">{o.detail}</span> : null}
               {o.value === value && <span className="tick"><Icon name="check" size={16} /></span>}
             </li>
           ))}

@@ -51,6 +51,9 @@ export const api = {
   config: () => call<{ assistant: boolean }>('GET', '/api/config'),
   assistant: (text: string) => call<AssistantResult>('POST', '/api/assistant', { text }),
   catalog: () => call<{ chains: CatalogChain[] }>('GET', '/api/catalog'),
+  /** Hourly prices for the last 7 days by token symbol (symbols only: no address or balance is sent). */
+  priceHistory: (symbols: string[]) => call<{ series: Record<string, number[]> }>('POST', '/api/price-history', { symbols }),
+  icons: () => call<{ chains: Record<string, string>; tokens: Record<string, string> }>('GET', '/api/icons'),
   challenge: (address: string, family: string) => call<{ challengeToken: string; message: string }>('POST', '/api/auth/challenge', { address, family }),
   verify: (b: { address: string; family: string; challengeToken: string; signature: string }) =>
     call<{ token: string; expiresAt: string; address: string; family: 'evm' | 'svm' }>('POST', '/api/auth/verify', b),

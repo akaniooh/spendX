@@ -11,6 +11,14 @@ export function tokenOptionLabel(t: { symbol: string; contractAddress: string | 
   return t.duplicateSymbol ? `${t.symbol} (${shortAddr(t.contractAddress ?? t.assetId, 8, 6)})` : t.symbol;
 }
 
+/** A token's USD price for the drop-down: cents above $1, a few significant digits below it ($0.00002134), "" when unknown. */
+export function formatTokenPrice(price: number | null | undefined): string {
+  if (price == null || !Number.isFinite(price) || price <= 0) return '';
+  if (price >= 1) return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const decimals = Math.min(12, Math.ceil(-Math.log10(price)) + 3);
+  return `$${price.toFixed(decimals)}`;
+}
+
 export function formatUsd(n: number): string {
   if (!Number.isFinite(n)) return '–';
   return n < 0.01 && n > 0 ? '< $0.01' : `$${n.toFixed(2)}`;

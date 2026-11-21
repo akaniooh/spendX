@@ -8,6 +8,7 @@ import { Merchant } from './pages/Merchant.tsx';
 import { Landing } from './pages/Landing.tsx';
 import { Swap } from './pages/Swap.tsx';
 import { Activity } from './pages/Activity.tsx';
+import { Portfolio } from './pages/Portfolio.tsx';
 import { Payments } from './pages/Payments.tsx';
 import { WalletProvider } from './wallets/WalletContext.tsx';
 
@@ -30,6 +31,7 @@ export default function App() {
     case 'pay': page = <Pay key={route.slug} slug={route.slug} />; break;
     case 'attempt': page = <AttemptTracker key={route.id} id={route.id} />; break;
     case 'swap': page = <Swap />; break;
+    case 'portfolio': page = <Portfolio />; break;
     case 'activity': page = <Activity />; break;
     case 'merchant': page = <Merchant />; break;
     default: page = <section className="page-head"><h1>Page not found</h1><p><a className="link" href="#/">Go to SpendX home</a></p></section>;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api.ts';
 import { forWallets, loadHistory, sameAddress } from '../lib/history.ts';
 import type { HistoryEntry } from '../lib/history.ts';
@@ -25,6 +25,18 @@ function StatusChip({ id, known, fixed }: { id: string; known?: Known; fixed?: b
   return <span className={`status ${s.kind}`}>{s.kind === 'ok' && <Icon name="check" size={14} />}{s.label}</span>;
 }
 
+/** Page numbers to show: always first and last, the current page with one neighbour each side, and '…' for gaps. */
+function pageItems(current: number, count: number): (number | '…')[] {
+  if (count <= 7) return Array.from({ length: count }, (_, i) => i + 1);
+  const keep = new Set([1, count, current - 1, current, current + 1]);
+  if (current <= 3) { keep.add(2); keep.add(3); keep.add(4); }
+  if (current >= count - 2) { keep.add(count - 3); keep.add(count - 2); keep.add(count - 1); }
+  const sorted = [...keep].filter((n) => n >= 1 && n <= count).sort((a, b) => a - b);
+  const out: (number | '…')[] = [];
+  sorted.forEach((n, i) => { if (i > 0 && n - sorted[i - 1] > 1) out.push('…'); out.push(n); });
+  return out;
+}
+
 /** `href` and `fixed` are for merchant rows (payment links this wallet created), which have no payment attempt of their own to open or refresh. */
 type Row = HistoryEntry & { known?: Known; href?: string; fixed?: boolean };
 
@@ -42,6 +54,7 @@ export function ActivityTable({ limit, swapsOnly = false }: { limit?: number; sw
   const [signing, setSigning] = useState<ConnectableFamily | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const tableTop = useRef<HTMLDivElement>(null);
 
   const evmAddr = evm?.address ?? null;
   const svmAddr = svm?.address ?? null;
@@ -124,6 +137,12 @@ export function ActivityTable({ limit, swapsOnly = false }: { limit?: number; sw
   const rows = paged ? allRows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE) : allRows.slice(0, limit);
   useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
 
+  function goTo(n: number) {
+    setPage(Math.min(Math.max(1, n), pageCount));
+    // Keep the top of the list in view after changing page, so a click at the bottom does not leave you mid-list.
+    tableTop.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
   async function doSignIn(family: ConnectableFamily) {
     setSigning(family);
     setErr(null);
@@ -177,7 +196,7 @@ export function ActivityTable({ limit, swapsOnly = false }: { limit?: number; sw
       {banner}
       {nearNote}
       {errorNote}
-      <div className="activity-table">
+      <div className="activity-table" ref={tableTop}>
         <div className="table-head"><span>Route</span><span>Amount</span><span>Date</span><span>Status</span><span /></div>
         {rows.map((e) => (
           <a className="table-row" key={e.attemptId} href={e.href ?? `#/attempt/${e.attemptId}`}>
@@ -196,13 +215,32 @@ export function ActivityTable({ limit, swapsOnly = false }: { limit?: number; sw
       </div>
       {paged && pageCount > 1 && (
         <nav className="pager" aria-label="Activity pages">
-          <button type="button" className="pager-btn" onClick={() => setPage(current - 1)} disabled={current === 1} aria-label="Previous page">
-            <span style={{ display: 'inline-flex', transform: 'rotate(180deg)' }}><Icon name="chevron" size={16} /></span>
-          </button>
-          <span className="pager-info">Page {current} of {pageCount}</span>
-          <button type="button" className="pager-btn" onClick={() => setPage(current + 1)} disabled={current === pageCount} aria-label="Next page">
-            <Icon name="chevron" size={16} />
-          </button>
+          <span className="pager-info" aria-live="polite">
+            Showing <strong>{(current - 1) * PAGE_SIZE + 1}–{Math.min(current * PAGE_SIZE, allRows.length)}</strong> of {allRows.length}
+          </span>
+          <div className="pager-controls">
+            <button type="button" className="pager-btn edge" onClick={() => goTo(current - 1)} disabled={current === 1} aria-label="Previous page">
+              <span style={{ display: 'inline-flex', transform: 'rotate(180deg)' }}><Icon name="chevron" size={16} /></span>
+            </button>
+            <span className="pager-compact">Page {current} of {pageCount}</span>
+            {pageItems(current, pageCount).map((n, i) => n === '…'
+              ? <span key={`gap-${i}`} className="pager-gap" aria-hidden="true">…</span>
+              : (
+                <button
+                  key={n}
+                  type="button"
+                  className="pager-btn pager-num"
+                  onClick={() => goTo(n)}
+                  aria-label={`Page ${n}`}
+                  aria-current={n === current ? 'page' : undefined}
+                >
+                  {n}
+                </button>
+              ))}
+            <button type="button" className="pager-btn edge" onClick={() => goTo(current + 1)} disabled={current === pageCount} aria-label="Next page">
+              <Icon name="chevron" size={16} />
+            </button>
+          </div>
         </nav>
       )}
     </>

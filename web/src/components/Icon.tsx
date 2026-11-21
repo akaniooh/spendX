@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { iconSources, useIconMaps } from '../lib/icons.ts';
 import { chainColor, chainMark, contrastText, tokenColor, tokenMark } from '../lib/colors.ts';
 
 export type IconName = 'arrow' | 'arrowDown' | 'check' | 'chevron' | 'clock' | 'close' | 'copy' | 'external' | 'history' | 'info' | 'link' | 'menu' | 'plus' | 'route' | 'search' | 'shield' | 'swap' | 'wallet' | 'alert' | 'sparkle';
@@ -36,25 +38,33 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
 
 // Official artwork supplied for these networks and tokens lives in web/public/icons (square PNGs, already round).
 // Anything not listed falls back to a coloured disc with a letter. To add one, drop `<name>.png` in that folder and list it here.
-const CHAIN_IMAGES: Record<string, string> = { eth: 'eth', base: 'base', sol: 'sol', near: 'near', btc: 'btc', op: 'op', pol: 'pol', arb: 'arb', avax: 'avax', bsc: 'bnb', gnosis: 'gnosis', scroll: 'scroll', aptos: 'aptos', bera: 'bera', monad: 'monad', plasma: 'plasma', xlayer: 'xlayer', ton: 'ton', sui: 'sui', tron: 'tron', stellar: 'stellar', starknet: 'starknet', xrp: 'xrp', zec: 'zec', ltc: 'ltc', doge: 'doge', cardano: 'cardano', bch: 'bch', aleo: 'aleo', adi: 'adi' };
-const TOKEN_IMAGES: Record<string, string> = { ETH: 'eth', WETH: 'eth', SOL: 'sol', NEAR: 'near', WNEAR: 'near', USDC: 'usdc', USDT: 'usdt', BTC: 'btc', WBTC: 'btc', OP: 'op', POL: 'pol', MATIC: 'pol', ARB: 'arb', AVAX: 'avax', WAVAX: 'avax', BNB: 'bnb', WBNB: 'bnb', GNO: 'gnosis', APT: 'aptos', BERA: 'bera', WBERA: 'bera', MON: 'monad', WMON: 'monad', XPL: 'plasma', WXPL: 'plasma', OKB: 'xlayer', TON: 'ton', SUI: 'sui', TRX: 'tron', XLM: 'stellar', STRK: 'starknet', XRP: 'xrp', ZEC: 'zec', LTC: 'ltc', DOGE: 'doge', ADA: 'cardano', BCH: 'bch', ALEO: 'aleo', ADI: 'adi' };
+const CHAIN_IMAGES: Record<string, string> = { eth: 'eth', base: 'base', sol: 'sol', near: 'near', btc: 'btc', op: 'op', pol: 'pol', arb: 'arb', avax: 'avax', bsc: 'bnb', gnosis: 'gnosis', scroll: 'scroll', aptos: 'aptos', bera: 'bera', monad: 'monad', plasma: 'plasma', xlayer: 'xlayer', dash: 'dash', qtc: 'qtc', prl: 'prl', movement: 'movement', move: 'movement', hypercore: 'hypercore', hyperliquid: 'hypercore', hyperevm: 'hypercore', hype: 'hypercore', hood: 'hood', robinhood: 'hood', fogo: 'fogo', abs: 'abs', abstract: 'abs', ton: 'ton', sui: 'sui', tron: 'tron', doge: 'doge', ltc: 'ltc', xrp: 'xrp', zec: 'zec', stellar: 'stellar', starknet: 'starknet', cardano: 'cardano', bch: 'bch', aleo: 'aleo', miden: 'miden', adi: 'adi' };
+const TOKEN_IMAGES: Record<string, string> = { ETH: 'eth', WETH: 'eth', SOL: 'sol', NEAR: 'near', WNEAR: 'near', USDC: 'usdc', USDT: 'usdt', BTC: 'btc', WBTC: 'btc', OP: 'op', POL: 'pol', MATIC: 'pol', ARB: 'arb', AVAX: 'avax', WAVAX: 'avax', BNB: 'bnb', WBNB: 'bnb', GNO: 'gnosis', APT: 'aptos', BERA: 'bera', WBERA: 'bera', MON: 'monad', WMON: 'monad', XPL: 'plasma', WXPL: 'plasma', OKB: 'xlayer', DASH: 'dash', HYPE: 'hypercore', WHYPE: 'hypercore', MOVE: 'movement', QTC: 'qtc', PRL: 'prl', FOGO: 'fogo', TON: 'ton', SUI: 'sui', TRX: 'tron', DOGE: 'doge', LTC: 'ltc', XRP: 'xrp', ZEC: 'zec', XLM: 'stellar', STRK: 'starknet', ADA: 'cardano', BCH: 'bch', ALEO: 'aleo', MIDEN: 'miden', ADI: 'adi' };
 const iconUrl = (name: string) => `/icons/${name}.png`;
 
+/** Tries each image in turn (CoinGecko logo, then our own PNG); when none loads it shows the coloured letter disc. */
+function Logo({ kind, sources, small, bg, mark }: { kind: 'chain' | 'token'; sources: string[]; small: boolean; bg: string; mark: string }) {
+  const [i, setI] = useState(0);
+  const has = i < sources.length;
+  const cls = `${kind}-icon${has ? ' has-img' : ''}${small ? ' small' : ''}`;
+  return has
+    ? <span className={cls} aria-hidden="true"><img src={sources[i]} alt="" draggable={false} referrerPolicy="no-referrer" onError={() => setI(i + 1)} /></span>
+    : <span className={cls} style={{ background: bg, color: contrastText(bg) }} aria-hidden="true">{mark}</span>;
+}
+
 export function ChainIcon({ chain, small = false }: { chain: string; small?: boolean }) {
-  const img = CHAIN_IMAGES[chain];
-  const bg = chainColor(chain);
-  return img
-    ? <span className={`chain-icon has-img ${small ? 'small' : ''}`} aria-hidden="true"><img src={iconUrl(img)} alt="" draggable={false} /></span>
-    : <span className={`chain-icon ${small ? 'small' : ''}`} style={{ background: bg, color: contrastText(bg) }} aria-hidden="true">{chainMark(chain)}</span>;
+  const maps = useIconMaps();
+  const local = CHAIN_IMAGES[chain];
+  const sources = iconSources(maps.chains[chain], local ? iconUrl(local) : undefined);
+  return <Logo key={sources.join('|')} kind="chain" sources={sources} small={small} bg={chainColor(chain)} mark={chainMark(chain)} />;
 }
 
 /** `plain` skips the logo: used for look-alike tokens (same symbol as another token on the network) so they never borrow the real token's logo. */
 export function TokenIcon({ symbol, chain, small = false, plain = false }: { symbol: string; chain: string; small?: boolean; plain?: boolean }) {
-  const img = plain ? undefined : TOKEN_IMAGES[symbol.toUpperCase()];
-  const bg = tokenColor(symbol, chain);
-  return img
-    ? <span className={`token-icon has-img ${small ? 'small' : ''}`} aria-hidden="true"><img src={iconUrl(img)} alt="" draggable={false} /></span>
-    : <span className={`token-icon ${small ? 'small' : ''}`} style={{ background: bg, color: contrastText(bg) }} aria-hidden="true">{tokenMark(symbol)}</span>;
+  const maps = useIconMaps();
+  const local = TOKEN_IMAGES[symbol.toUpperCase()];
+  const sources = plain ? [] : iconSources(maps.tokens[symbol.toUpperCase()], local ? iconUrl(local) : undefined);
+  return <Logo key={sources.join('|')} kind="token" sources={sources} small={small} bg={tokenColor(symbol, chain)} mark={tokenMark(symbol)} />;
 }
 
 /** SpendX mark: two overlapping rounded squares, rotated. */
