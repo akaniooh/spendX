@@ -163,3 +163,32 @@ test('local history only shows for the connected wallet', () => {
   assert.deepEqual(forWallets(list, ['0xabc', 'SoLaNa1']).map((x) => x.attemptId), ['a', 'b']);
   assert.deepEqual(forWallets(list, ['solana1']).map((x) => x.attemptId), []);
 });
+
+import { formatTokenPrice } from '../src/lib/labels.ts';
+test('token prices read well from large to tiny, and unknown prices stay blank', () => {
+  assert.equal(formatTokenPrice(67432.1), '$67,432.10');
+  assert.equal(formatTokenPrice(1.0004), '$1.00');
+  assert.equal(formatTokenPrice(0.5), '$0.5000');
+  assert.equal(formatTokenPrice(0.00002134), '$0.00002134');
+  assert.equal(formatTokenPrice(null), '');
+  assert.equal(formatTokenPrice(0), '');
+});
+
+import { shareTargets, shareText } from '../src/lib/share.ts';
+test('share links carry the payment link, encoded', () => {
+  const url = 'https://spend-x-ten.vercel.app/#/pay/abc123';
+  const t = shareTargets(url, shareText('0.2', 'USDC', 'Invoice #1042'));
+  assert.ok(t.x.startsWith('https://x.com/intent/post?text=Pay%200.2%20USDC%20with%20SpendX%20(Invoice%20%231042)&url='));
+  assert.ok(t.x.endsWith(encodeURIComponent(url)));
+  assert.ok(t.whatsapp.startsWith('https://wa.me/?text=') && t.whatsapp.includes(encodeURIComponent(url)));
+  assert.equal(shareText('1', 'ETH', '  '), 'Pay 1 ETH with SpendX');
+});
+
+import { countdownLabel } from '../src/lib/clock.ts';
+test('countdown shows m:ss, then h:mm:ss for long links, never negative', () => {
+  assert.equal(countdownLabel(0), '0:00');
+  assert.equal(countdownLabel(59), '0:59');
+  assert.equal(countdownLabel(1799), '29:59');
+  assert.equal(countdownLabel(3723), '1:02:03');
+  assert.equal(countdownLabel(-5), '0:00');
+});
