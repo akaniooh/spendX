@@ -1,10 +1,11 @@
-import type { QuoteRequestBody, QuoteResponse, StatusResponse, Token } from '../../shared/src/types.ts';
+import type { AppFee, QuoteRequestBody, QuoteResponse, StatusResponse, Token } from '../../shared/src/types.ts';
 
 // Endpoints used (all from docs.near-intents.org, 1Click API):
 //   GET  /v0/tokens
 //   POST /v0/quote
 //   POST /v0/deposit/submit
 //   GET  /v0/status?depositAddress=...&depositMemo=...
+// Quotes may carry `appFees` (SpendX's revenue) and `referral`; see shared/src/fees.ts.
 // The API key goes in the X-API-Key header (docs: "Authenticating", API Keys page). Backend only.
 
 export class OneClickError extends Error {
@@ -96,6 +97,9 @@ interface QuoteCommon {
   now?: Date;
   /** set for chains that require a memo with the deposit address */
   depositMode?: 'SIMPLE' | 'MEMO';
+  /** SpendX's own fee (see shared/src/fees.ts); omitted entirely when there is none */
+  appFees?: AppFee[];
+  referral?: string;
 }
 
 export interface BuildQuoteArgs extends QuoteCommon {
@@ -125,6 +129,8 @@ function build(a: QuoteCommon, swapType: 'EXACT_OUTPUT' | 'EXACT_INPUT', amount:
     deadline: new Date(now.getTime() + a.deadlineMinutes * 60_000).toISOString(),
   };
   if (a.depositMode) body.depositMode = a.depositMode;
+  if (a.appFees && a.appFees.length > 0) body.appFees = a.appFees.map((f) => ({ recipient: f.recipient, fee: f.fee }));
+  if (a.referral) body.referral = a.referral;
   return body;
 }
 

@@ -14,6 +14,7 @@ import { createNearSignatureVerifier, verifyEvmSignature, verifySolanaSignature 
 import { CatalogCache } from './catalog.ts';
 import { IconCache, iconsRoute } from './icons.ts';
 import { PriceHistoryCache, priceHistoryRoute } from './price-history.ts';
+import { RatesCache, ratesRoute } from './rates.ts';
 import { loadConfig } from './config.ts';
 import { MemoryRepository } from './repo-memory.ts';
 import { SupabaseRepository } from './repo-supabase.ts';
@@ -44,6 +45,7 @@ const service = new PaymentService({
   // Independent delivery checks against the destination chain itself (EVM and Solana). Other families stay "reported".
   verifiers: { evm: createEvmVerifier({ rpcUrlFor }), svm: createSolanaVerifier({ rpcUrl: cfg.solanaRpcUrl }) },
   slippageBps: cfg.slippageBps,
+  fees: cfg.fees,
   deadlineMinutes: cfg.deadlineMinutes,
   linkExpiryMinutes: cfg.linkExpiryMinutes,
 });
@@ -61,6 +63,8 @@ const routes = buildRoutes({
 routes.push(iconsRoute(new IconCache({ apiKey: cfg.coingeckoApiKey, baseUrl: cfg.coingeckoBaseUrl, log: (m, e) => console.warn(m, e) }), catalog));
 // Hourly price history (symbols only) for the Portfolio chart, from the same CoinGecko source and key as the logos.
 routes.push(priceHistoryRoute(new PriceHistoryCache({ apiKey: cfg.coingeckoApiKey, baseUrl: cfg.coingeckoBaseUrl, log: (m, e) => console.warn(m, e) })));
+// USD to local-currency rates for the Local currency setting (display only).
+routes.push(ratesRoute(new RatesCache({ apiKey: cfg.coingeckoApiKey, baseUrl: cfg.coingeckoBaseUrl, log: (m, e) => console.warn(m, e) })));
 routes.push(solanaRpcProxyRoute({ rpcUrl: cfg.solanaRpcUrl, log: (m) => console.warn(m) }));
 
 const app = express();
@@ -70,7 +74,7 @@ if (cfg.trustProxy > 0) app.set('trust proxy', cfg.trustProxy);
 const headers = securityHeaders({ production: process.env.NODE_ENV === 'production', enforceCsp: cfg.cspEnforce });
 app.use((req, res, next) => {
   for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
-  if (req.path === '/api/icons') res.setHeader('Cache-Control', 'public, max-age=3600'); // logos change rarely
+  if (req.path === '/api/icons' || req.path === '/api/rates') res.setHeader('Cache-Control', 'public, max-age=3600'); // logos and exchange rates change slowly
   else if (req.path.startsWith('/api/') && req.path !== '/api/catalog') res.setHeader('Cache-Control', 'no-store'); // payment status must always be fresh (the big token list may be cached)
   next();
 });

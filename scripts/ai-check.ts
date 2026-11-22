@@ -83,7 +83,7 @@ const tokens = [
   { assetId: 'sol', blockchain: 'sol', symbol: 'SOL', decimals: 9 },
   { assetId: 'base-usdc', blockchain: 'base', symbol: 'USDC', decimals: 6 },
 ];
-async function realCall(label: string, settings: Parameters<typeof createAssistant>[0]): Promise<boolean> {
+async function realCall(label: string, settings: Omit<Parameters<typeof createAssistant>[0], 'catalog'>): Promise<boolean> {
   const t0 = Date.now();
   try {
     const r = await createAssistant({ ...settings, retryDelayMs: 500, log: (l) => console.log(`   ${l}`), catalog: { get: async () => tokens } }).interpret('10 SOL to USDC on base');

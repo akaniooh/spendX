@@ -1,7 +1,12 @@
+import { ONECLICK_MAX_TOTAL_BPS, feeToSubmit, isValidFeeRecipient, isValidReferral, ourShareBps, worstCaseTotalBps } from '../../shared/src/fees.ts';
+import type { FeeConfig } from '../../shared/src/fees.ts';
+
 export interface Config {
   port: number;
   oneClickBaseUrl: string;
   oneClickApiKey?: string;
+  /** SpendX's revenue settings (all off unless FEE_RECIPIENT and a fee are set) */
+  fees: FeeConfig;
   /** optional CoinGecko key and base url for chain/token logos (a free demo key works; without one the public rate limit applies) */
   coingeckoApiKey?: string;
   coingeckoBaseUrl?: string;
@@ -112,14 +117,52 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
   const reconcileIntervalSeconds = num('RECONCILE_INTERVAL_SECONDS', 20, 0, 3600);
   if (reconcileIntervalSeconds > 0 && reconcileIntervalSeconds < 5) throw new Error('RECONCILE_INTERVAL_SECONDS must be 0 (off) or at least 5');
   const trustProxy = num('TRUST_PROXY', 0, 0, 5);
+  // ---- revenue: SpendX's own fee on top of NEAR Intents' (1Click `appFees`) ----
+  const oneClickApiKey = env.ONECLICK_API_KEY || undefined;
+  const hasApiKey = !!oneClickApiKey;
+  const feeRecipient = env.FEE_RECIPIENT?.trim() || undefined;
+  const bps = (k: string) => {
+    const v = num(k, 0, 0, ONECLICK_MAX_TOTAL_BPS);
+    if (!Number.isInteger(v)) throw new Error(`${k} must be a whole number of basis points (100 = 1%)`);
+    return v;
+  };
+  const swapBps = bps('SWAP_FEE_BPS');
+  const paymentBps = bps('PAYMENT_FEE_BPS');
+  if (feeRecipient && !isValidFeeRecipient(feeRecipient)) {
+    throw new Error('FEE_RECIPIENT must be a NEAR Intents account (for example spendx.near, a 64-character implicit account, or a 0x address)');
+  }
+  if ((swapBps > 0 || paymentBps > 0) && !feeRecipient) throw new Error('SWAP_FEE_BPS / PAYMENT_FEE_BPS are set but FEE_RECIPIENT is not: there is nowhere to send the fee');
+  const referralRaw = (env.FEE_REFERRAL || '').trim();
+  if (referralRaw && !isValidReferral(referralRaw)) throw new Error('FEE_REFERRAL must be lowercase letters and digits, optionally joined by single - _ or . (max 57 characters)');
+  const referral = referralRaw || (feeRecipient ? 'spendx' : undefined);
+  for (const [name, keep] of [['SWAP_FEE_BPS', swapBps], ['PAYMENT_FEE_BPS', paymentBps]] as const) {
+    if (keep <= 0) continue;
+    const total = worstCaseTotalBps(feeToSubmit(keep, hasApiKey), hasApiKey);
+    if (total > ONECLICK_MAX_TOTAL_BPS) {
+      throw new Error(`${name}=${keep} would make the customer's combined fee ${total} bps with 1Click's share, above the ${ONECLICK_MAX_TOTAL_BPS} bps limit. ${hasApiKey ? 'With an API key 1Click takes half of the fee you submit, so the most you can keep is 250.' : 'Without an API key 1Click also takes half and adds 25 bps, so the most you can keep is 237.'}`);
+    }
+  }
+
   const warnings: string[] = [];
   if (env.NODE_ENV === 'production' && trustProxy === 0) {
     warnings.push('TRUST_PROXY is 0. Behind a hosting proxy every visitor then looks like the same address, so one visitor can use up everyone\'s rate limit. Set TRUST_PROXY=1 if a proxy sits in front of this server.');
   }
+  if (feeRecipient && (swapBps > 0 || paymentBps > 0)) {
+    warnings.push(`fees are paid to ${feeRecipient}. Check this is your account: a FEE_RECIPIENT already set in your terminal (for example by an earlier "set FEE_RECIPIENT=...") overrides the .env file.`);
+  }
+  for (const [name, keep] of [['swap', swapBps], ['payment', paymentBps]] as const) {
+    if (keep <= 0) continue;
+    const submitted = feeToSubmit(keep, hasApiKey);
+    const total = worstCaseTotalBps(submitted, hasApiKey);
+    warnings.push(`${name} fee: SpendX keeps ${ourShareBps(submitted, hasApiKey)} bps; customers pay up to ${total} bps in total with 1Click's share (${hasApiKey ? 'API key set: 1Click takes half of the submitted fee, minimum 20 bps' : 'no API key: 1Click was measured taking half of the submitted fee and adds its own 25 bps base'}). Run npm run fee:check to confirm against the live API.`);
+  }
+  if (feeRecipient && swapBps === 0 && paymentBps === 0) warnings.push('FEE_RECIPIENT is set but SWAP_FEE_BPS and PAYMENT_FEE_BPS are both 0, so no fee is taken.');
+
   return {
     port: num('PORT', 8787, 1, 65535),
     oneClickBaseUrl: env.ONECLICK_BASE_URL || 'https://1click.chaindefuser.com',
-    oneClickApiKey: env.ONECLICK_API_KEY || undefined,
+    oneClickApiKey,
+    fees: { recipient: feeRecipient, swapBps, paymentBps, referral, hasApiKey },
     coingeckoApiKey: env.COINGECKO_API_KEY || undefined,
     coingeckoBaseUrl: checkBaseUrl('COINGECKO_BASE_URL', env.COINGECKO_BASE_URL),
     slippageBps: num('SLIPPAGE_BPS', 100, 1, 1000),

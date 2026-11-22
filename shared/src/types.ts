@@ -19,6 +19,12 @@ export type OneClickStatus =
   | 'REFUNDED'
   | 'FAILED';
 
+/** One entry of 1Click's `appFees`: `fee` is an integer number of basis points taken from the input token. */
+export interface AppFee {
+  recipient: string;
+  fee: number;
+}
+
 export interface QuoteRequestBody {
   dry: boolean;
   swapType: 'EXACT_INPUT' | 'EXACT_OUTPUT' | 'FLEX_INPUT' | 'ANY_INPUT';
@@ -33,6 +39,10 @@ export interface QuoteRequestBody {
   recipientType: 'DESTINATION_CHAIN' | 'INTENTS' | 'CONFIDENTIAL_INTENTS';
   deadline: string;
   depositMode?: 'SIMPLE' | 'MEMO';
+  /** distribution-channel fee (what SpendX earns); see shared/src/fees.ts */
+  appFees?: AppFee[];
+  /** lowercase partner identifier so NEAR Intents can attribute volume */
+  referral?: string;
 }
 
 export interface Quote {

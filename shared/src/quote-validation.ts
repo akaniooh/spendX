@@ -1,5 +1,6 @@
 import { sameAddress } from './addresses.ts';
-import type { QuoteResponse } from './types.ts';
+import { checkEchoedAppFees } from './fees.ts';
+import type { AppFee, QuoteResponse } from './types.ts';
 
 /** What the merchant asked for plus what the customer chose. Everything here is OUR data, not the API's. */
 export interface PaymentIntent {
@@ -16,6 +17,8 @@ export interface PaymentIntent {
   originBlockchain: string;
   /** customer's refund address on the origin chain */
   refundTo: string;
+  /** the SpendX fee we asked 1Click to apply; the signed quote must echo it back unchanged */
+  appFees?: AppFee[];
 }
 
 export interface ValidationResult {
@@ -45,6 +48,8 @@ export function validateLiveQuote(intent: PaymentIntent, res: QuoteResponse, now
   if (r.originAsset !== intent.originAssetId) bad('Source asset differs from the one selected');
   if (!sameAddress(intent.destBlockchain, r.recipient, intent.recipient)) bad('Recipient differs from the request');
   if (!sameAddress(intent.originBlockchain, r.refundTo, intent.refundTo)) bad('Refund address differs from the payer address');
+  const feeProblem = checkEchoedAppFees(intent.appFees, r.appFees);
+  if (feeProblem) bad(feeProblem);
 
   try {
     const amountIn = BigInt(q.amountIn);

@@ -3,6 +3,8 @@ import { validateAddress } from '../../shared/src/addresses.ts';
 import { fromBaseUnits, toBaseUnits } from '../../shared/src/amounts.ts';
 import { familyOf } from '../../shared/src/chains.ts';
 import type { WalletFamily } from '../../shared/src/chains.ts';
+import { buildAppFees, feeUsdEstimate, ourShareBps } from '../../shared/src/fees.ts';
+import type { FeeConfig } from '../../shared/src/fees.ts';
 import { validateLiveQuote } from '../../shared/src/quote-validation.ts';
 import { derivePaymentState, isTerminal } from '../../shared/src/status.ts';
 import type { DestinationVerifier } from '../../shared/src/adapters.ts';
@@ -20,6 +22,8 @@ export interface ServiceDeps {
   verifyQuoteSignature: (q: QuoteResponse) => boolean;
   verifiers?: Partial<Record<string, DestinationVerifier>>;
   slippageBps: number;
+  /** SpendX's own revenue (1Click appFees). Omitted or without a recipient: no fee is taken. */
+  fees?: FeeConfig;
   deadlineMinutes: number;
   /** how long a merchant payment link stays usable after it is created (default 30) */
   linkExpiryMinutes?: number;
@@ -37,6 +41,8 @@ export interface QuotePreview {
   refundFee?: string;
   withdrawFee?: string;
   minAmountIn: string;
+  /** SpendX's own fee, already included in the amounts above; absent when no fee is configured */
+  spendxFee?: SpendxFee;
 }
 
 const UNVERIFIED_FALLBACK_MS = 10 * 60_000;
@@ -73,6 +79,14 @@ export interface SwapPreview {
   slippageBps: number;
   refundFee?: string;
   withdrawFee?: string;
+  /** SpendX's own fee, already included in the cost above; absent when no fee is configured */
+  spendxFee?: SpendxFee;
+}
+
+/** What SpendX earns on this quote: basis points of the amount sent, and an estimated USD value. */
+export interface SpendxFee {
+  bps: number;
+  usd: number;
 }
 
 export class PaymentService {
@@ -82,6 +96,21 @@ export class PaymentService {
   }
   private now() {
     return (this.d.now ?? Date.now)();
+  }
+
+  /** The fee parameters for a quote, and what SpendX itself earns from them. Same for dry and live quotes, so the preview matches the final quote. */
+  private feeFor(kind: 'payment' | 'swap', sameAsset = false) {
+    const f = this.d.fees;
+    if (!f) return { appFees: undefined, referral: undefined, ourBps: 0 };
+    const appFees = buildAppFees(f.recipient, kind === 'payment' ? f.paymentBps : f.swapBps, f.hasApiKey, sameAsset);
+    return { appFees, referral: f.referral, ourBps: appFees ? ourShareBps(appFees[0].fee, f.hasApiKey, sameAsset) : 0 };
+  }
+
+  /** The share 1Click itself reports for our recipient (what actually arrives), falling back to what the model expects. */
+  private shareOf(res: QuoteResponse, expected: number): number {
+    const r = this.d.fees?.recipient;
+    const echoed = r ? res.quoteRequest.appFees?.find((e) => e.recipient === r)?.fee : undefined;
+    return expected > 0 && echoed !== undefined && echoed > 0 ? echoed : expected;
   }
 
   async createRequest(i: {
@@ -166,8 +195,11 @@ export class PaymentService {
   async previewQuote(slug: string, i: { originAssetId: string; payerAddress: string }): Promise<QuotePreview> {
     const req = await this.openRequest(slug);
     await this.resolveSource(i.originAssetId, i.payerAddress);
+    const fee = this.feeFor('payment', i.originAssetId === req.destAssetId);
     const body = buildExactOutputQuote({
       dry: true,
+      appFees: fee.appFees,
+      referral: fee.referral,
       originAssetId: i.originAssetId,
       destAssetId: req.destAssetId,
       amountOut: req.amount,
@@ -186,7 +218,7 @@ export class PaymentService {
       }
       throw e;
     }
-    return summarize(res.quote);
+    return summarize(res.quote, this.shareOf(res, fee.ourBps));
   }
 
   /** Live quote: validates it against the request, then stores the attempt with its deposit address. */
@@ -224,8 +256,11 @@ export class PaymentService {
       }
     }
 
+    const fee = this.feeFor('payment', src.assetId === req.destAssetId);
     const body = buildExactOutputQuote({
       dry: false,
+      appFees: fee.appFees,
+      referral: fee.referral,
       originAssetId: src.assetId,
       destAssetId: req.destAssetId,
       amountOut: req.amount,
@@ -257,6 +292,7 @@ export class PaymentService {
         originAssetId: src.assetId,
         originBlockchain: src.blockchain,
         refundTo: i.payerAddress,
+        appFees: fee.appFees,
       },
       res,
       this.now(),
@@ -331,12 +367,13 @@ export class PaymentService {
   /** Dry quote for a swap: shows what you would get. Creates nothing and no deposit address. */
   async previewSwap(i: SwapInput): Promise<SwapPreview> {
     const { src, dst, amountIn, slippage } = await this.resolveSwap(i);
+    const fee = this.feeFor('swap');
     const res = await this.quoteOrThrow(buildExactInputQuote({
-      dry: true, originAssetId: src.assetId, destAssetId: dst.assetId, amountIn,
+      dry: true, appFees: fee.appFees, referral: fee.referral, originAssetId: src.assetId, destAssetId: dst.assetId, amountIn,
       recipient: i.recipient, refundTo: i.payerAddress, slippageBps: slippage,
       deadlineMinutes: this.d.deadlineMinutes, now: new Date(this.now()),
     }));
-    return summarizeSwap(res.quote, dst.decimals, slippage);
+    return summarizeSwap(res.quote, dst.decimals, slippage, this.shareOf(res, fee.ourBps));
   }
 
   /**
@@ -345,8 +382,9 @@ export class PaymentService {
    */
   async createSwap(i: SwapInput): Promise<{ request: PaymentRequest; attempt: Attempt }> {
     const { src, dst, amountIn, slippage } = await this.resolveSwap(i);
+    const fee = this.feeFor('swap');
     const res = await this.quoteOrThrow(buildExactInputQuote({
-      dry: false, originAssetId: src.assetId, destAssetId: dst.assetId, amountIn,
+      dry: false, appFees: fee.appFees, referral: fee.referral, originAssetId: src.assetId, destAssetId: dst.assetId, amountIn,
       recipient: i.recipient, refundTo: i.payerAddress, slippageBps: slippage,
       deadlineMinutes: this.d.deadlineMinutes, now: new Date(this.now()),
     }));
@@ -355,7 +393,7 @@ export class PaymentService {
     }
     const v = validateLiveQuote(
       { swapType: 'EXACT_INPUT', amountIn, destAssetId: dst.assetId, destBlockchain: dst.blockchain, recipient: i.recipient,
-        originAssetId: src.assetId, originBlockchain: src.blockchain, refundTo: i.payerAddress },
+        originAssetId: src.assetId, originBlockchain: src.blockchain, refundTo: i.payerAddress, appFees: fee.appFees },
       res, this.now(),
     );
     if (!v.ok) throw new SpendXError('quote_rejected', 'The quote did not match your swap and was rejected', 502, v.reasons);
@@ -533,7 +571,11 @@ export class PaymentService {
   }
 }
 
-function summarize(q: Quote): QuotePreview {
+function spendxFeeOf(q: Quote, ourBps: number): SpendxFee | undefined {
+  return ourBps > 0 ? { bps: ourBps, usd: feeUsdEstimate(q.amountInUsd, ourBps) } : undefined;
+}
+
+function summarize(q: Quote, ourBps = 0): QuotePreview {
   return {
     amountInFormatted: q.amountInFormatted,
     amountOutFormatted: q.amountOutFormatted,
@@ -544,10 +586,11 @@ function summarize(q: Quote): QuotePreview {
     refundFee: q.refundFee,
     withdrawFee: q.withdrawFee,
     minAmountIn: q.minAmountIn,
+    spendxFee: spendxFeeOf(q, ourBps),
   };
 }
 
-function summarizeSwap(q: Quote, destDecimals: number, slippageBps: number): SwapPreview {
+function summarizeSwap(q: Quote, destDecimals: number, slippageBps: number, ourBps = 0): SwapPreview {
   let min = q.minAmountOut;
   try { min = fromBaseUnits(BigInt(q.minAmountOut), destDecimals); } catch { /* keep raw */ }
   return {
@@ -561,5 +604,6 @@ function summarizeSwap(q: Quote, destDecimals: number, slippageBps: number): Swa
     slippageBps,
     refundFee: q.refundFee,
     withdrawFee: q.withdrawFee,
+    spendxFee: spendxFeeOf(q, ourBps),
   };
 }
