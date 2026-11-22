@@ -10,6 +10,8 @@
   "scripts": {
     "test": "node --test \"shared/test/*.test.ts\" \"server/test/*.test.ts\" \"web/test/*.test.ts\"",
     "discover": "node --env-file-if-exists=.env scripts/discover.ts",
+    "fee:check": "node --env-file-if-exists=.env scripts/fee-check.ts",
+    "fee:balance": "node --env-file-if-exists=.env scripts/intents-balance.ts",
     "typecheck": "tsc -p .",
     "start": "node --env-file-if-exists=.env server/src/index.ts",
     "dev": "vite --config web/vite.config.ts",

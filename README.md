@@ -21,10 +21,11 @@ where it can, checks that delivery on the destination chain itself.
 7. [What works today](#what-works-today)
 8. [Run it locally](#run-it-locally)
 9. [Configuration](#configuration)
-10. [Deploying (Render and Vercel)](#deploying-render-and-vercel)
-11. [Testing instructions](#testing-instructions)
-12. [Project layout](#project-layout)
-13. [Hackathon disclosure](#hackathon-disclosure)
+10. [Revenue](#revenue)
+11. [Deploying (Render and Vercel)](#deploying-render-and-vercel)
+12. [Testing instructions](#testing-instructions)
+13. [Project layout](#project-layout)
+14. [Hackathon disclosure](#hackathon-disclosure)
 
 ---
 
@@ -252,7 +253,10 @@ Copy `.env.example` to `.env`. **Never commit `.env`**, and never put a secret i
 | `REPOSITORY` | No | `memory` for local development only (data resets on restart). Default is Supabase. |
 | `SOLANA_RPC_URL` | No | Solana RPC for delivery checks **and** the `/api/solana-rpc` proxy the browser uses. A keyed URL (for example Helius) belongs here, never in a `VITE_` variable. |
 | `RPC_URL_<CHAIN>` | No | Per-chain RPC for delivery checks, for example `RPC_URL_BASE`. EVM chains default to viem's public RPC. |
-| `ONECLICK_API_KEY` | No | Free from <https://partners.near-intents.org>. Without it an extra 0.25% fee applies to live quotes. |
+| `ONECLICK_API_KEY` | No | Free from <https://partners.near-intents.org>. It changes how 1Click's cut and your fee are split, see [Revenue](#revenue). |
+| `FEE_RECIPIENT` | To earn | The NEAR Intents account that receives SpendX's fee (for example `yourname.near`). Nothing is charged until this and a fee below are set. |
+| `SWAP_FEE_BPS`, `PAYMENT_FEE_BPS` | To earn | What SpendX wants to **keep** on a swap and on a merchant payment, in basis points (25 = 0.25%). Default 0. |
+| `FEE_REFERRAL` | No | Partner tag sent to 1Click so volume is attributed to you (lowercase, default `spendx` once fees are on). |
 | `COINGECKO_API_KEY` | No | Free demo key from CoinGecko. Chain and token logos are fetched from CoinGecko by the server and cached for 12 hours; without a key the public rate limit applies. Anything CoinGecko lacks falls back to the PNGs in `web/public/icons`, then a letter disc. |
 | `ONECLICK_BASE_URL` | No | Override the 1Click API base URL. |
 | `TRUST_PROXY` | Behind a proxy | Number of proxy hops to trust so rate limits see the real client IP (`1` for Render alone, `2` for Vercel in front of Render). |
@@ -281,6 +285,39 @@ With no key set, the assistant is simply hidden.
 | --- | --- |
 | `VITE_SOLANA_RPC_URL` | Optional **key-free** Solana endpoint for the browser. Leave it unset to use the built-in `/api/solana-rpc` proxy. The build fails if the value looks like it contains a key. |
 | `VITE_NEAR_RPC_URL` | Optional NEAR RPC override (default `https://free.rpc.fastnear.com`). |
+
+## Revenue
+
+SpendX earns through 1Click's `appFees` quote parameter. It is an interface fee, the same model Uniswap's web app, Jupiter and OKX's DEX API offer integrators. It is **off until you set `FEE_RECIPIENT` and a fee**, and it is taken from the token the customer sends:
+
+- **Payments** (exact output): the fee raises what the payer sends. The merchant still receives exactly the amount on the link.
+- **Swaps** (exact input): the fee comes out of the amount the customer entered. The guaranteed minimum is unaffected.
+- The preview shows it as its own **Includes SpendX fee** line (it is already part of the estimated cost), and the signed quote must echo the fee back unchanged or it is rejected.
+
+**How 1Click splits it** (NEAR Intents, Fee Configuration docs). The rules are encoded in `shared/src/fees.ts`:
+
+| | You set `X` bps to keep | Customer pays in total |
+| --- | --- | --- |
+| **With** `ONECLICK_API_KEY` | SpendX submits `2X`; 1Click takes the other half, minimum 20 bps (1 bp for stablecoin pairs) | about `X + max(X, 20)` |
+| **Without** a key | The docs say SpendX keeps the whole fee. **Measured live: the fee is split here too**, so SpendX submits `2X` (see below) | about `2X + 25` |
+
+The combined total may not exceed 500 bps, so config refuses settings above that. A startup warning prints what each setting means for the customer. Better terms than the default 50/50 split are negotiated through the Partner Portal.
+
+**Verify before going live.** These rules are published, not something the code can prove offline. `npm run fee:check` sends dry quotes only (no funds can move) and compares a quote with your fee against one without:
+
+```bash
+FEE_RECIPIENT=yourname.near ONECLICK_API_KEY=... npm run fee:check -- \
+  --pair "base:USDC>arb:USDC" --amount 100 --addr "evm=0x<any evm address>" --keep 25 --no-key-too
+# add --input to measure a swap instead of a payment
+```
+
+It prints what 1Click echoed back, the measured extra cost in basis points, and whether that matches the published rules. If it says it does not, do not trust the numbers in this section for that route.
+
+**Measured against the live API (keyless, dry quotes, 2026-11-22):** the customer pays the full submitted fee extra, but 1Click lists our entry as half of it, rounded up: 25 to 13, 50 to 25 and 11 to 6 on payments, and 25 to 13 on swaps. The code therefore assumes the 50/50 split applies without an API key too (`ONECLICK_SPLITS_WITHOUT_KEY` in `shared/src/fees.ts`): to keep 25 bps it submits 50, and customers pay about 50 bps extra on top of 1Click's base fee. Confirmed with real money on 2026-11-22: a swap and a merchant payment each credited exactly the share 1Click reported (no API key for the swap; ETH on Base for the payment). The preview's "Includes SpendX fee" line shows that reported share. **Exception, measured on one route:** when the payer's token and the merchant's token are the identical asset on the same chain (ETH on Base to ETH on Base), 1Click does not split the fee: 50 submitted came back as 50 and 50 bps arrived. The code therefore submits only what you keep for those payments, so the payer pays about 25 bps for keep 25, not 50. Check another same-chain route with `npm run fee:check` before relying on this beyond identical assets (for example `--pair "base:USDC>base:ETH"`). Quote validation accepts a lower echoed fee for this reason, and still rejects a missing entry, a different recipient, a zero fee, or a higher fee than was requested.
+
+**Seeing the money.** Fees are credited to `FEE_RECIPIENT`'s balance inside the NEAR Intents contract, in the token the customer sent (SOL for a SOL swap). That is not a normal wallet token, so wallets usually show nothing. Read it with `npm run fee:balance -- --account yourname.near --token nep141:sol.omft.near --decimals 9` (read-only; find asset ids with `npm run discover -- --find SOL`).
+
+**Collecting the money.** Fees accrue in whatever token the customer sent. For volume across many tokens, 1Click can aggregate them into one asset and withdraw automatically (an `ANY_INPUT` quote whose `depositAddress` becomes your `FEE_RECIPIENT`; needs an API key). Each stored attempt keeps its signed quote including `appFees`, and the Explorer API reports fees per transaction, so revenue can be reconciled.
 
 ## Deploying (Render and Vercel)
 
@@ -312,6 +349,11 @@ If `npm ci` fails on a lockfile mismatch, regenerate the lockfile with `npx npm@
    *Expected:* the **You receive** box fills from a live quote, with rate, guaranteed minimum, cost and time under the card. Changing slippage or amount refreshes it. A warning appears if spread and fees exceed about 3%.
 6. **Try the assistant** (needs an AI key). Type `10 SOL to USDC on Base`.
    *Expected:* the card fills in and nothing is sent. Typing `swap some USDC to SOL` returns a question, not a guess. Pasting a SpendX payment link opens it directly.
+
+### Fee check (optional, no funds)
+
+Only if you set `FEE_RECIPIENT`: run `npm run fee:check` as shown under [Revenue](#revenue).
+*Expected:* `[ok: our entry is present unchanged]`, a measured extra cost close to the published rule, and `RESULT matches the published rules`.
 
 ### Real funds (mainnet, small amounts)
 
