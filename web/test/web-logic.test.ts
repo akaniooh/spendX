@@ -75,7 +75,7 @@ test('deposit classification only allows assets we can positively identify', () 
   assert.equal(classifyDeposit(tok({ symbol: 'ETH', decimals: 18 })).kind, 'unsupported');
   assert.equal(classifyDeposit(tok({ contractAddress: 'not-an-address' }), ETH).kind, 'unsupported');
   assert.equal(classifyDeposit(tok({ blockchain: 'sol', symbol: 'SOL', decimals: 9 })).kind, 'svm-native');
-  assert.equal(classifyDeposit(tok({ blockchain: 'sol', symbol: 'USDC', decimals: 6, contractAddress: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' })).kind, 'unsupported');
+  assert.equal(classifyDeposit(tok({ blockchain: 'sol', symbol: 'USDC', decimals: 6, contractAddress: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' })).kind, 'svm-spl');
   assert.deepEqual(classifyDeposit(tok({ blockchain: 'near', assetId: 'nep141:usdt.tether-token.near', contractAddress: 'usdt.tether-token.near' })),
     { kind: 'near-nep141', contract: 'usdt.tether-token.near' });
   assert.deepEqual(classifyDeposit(tok({ blockchain: 'near', assetId: 'nep141:wrap.near' })), { kind: 'near-nep141', contract: 'wrap.near' });
