@@ -6,6 +6,9 @@ import type { Route } from '../lib/route.ts';
 import { scrollToSection } from '../lib/landing.ts';
 import { Brand, Icon } from './Icon.tsx';
 import { WalletModal } from './WalletModal.tsx';
+import { SettingsMenu } from './SettingsMenu.tsx';
+import { ErrorBoundary } from './ErrorBoundary.tsx';
+import { SettingsProvider } from '../settings/SettingsContext.tsx';
 
 const NAV: { label: string; href: string; names: Route['name'][] }[] = [
   { label: 'Swap', href: '#/swap', names: ['swap'] },
@@ -36,6 +39,7 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
   const first = w.evm?.address ?? w.svm?.address ?? w.near?.address ?? null;
 
   return (
+    <SettingsProvider>
     <div className={route.name === 'home' ? 'app landing' : 'app'}>
       {route.name === 'home' ? (
         <header className="topbar lp-top">
@@ -64,11 +68,12 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
             {w.connectedCount === 0 ? 'Connect wallet' : first ? shortAddr(first, 4, 4) : 'Wallets'}
             {w.connectedCount > 1 && ` +${w.connectedCount - 1}`}
           </button>
+          <ErrorBoundary silent><SettingsMenu /></ErrorBoundary>
           <button className="menu-button" aria-label="Menu" aria-expanded={menu} onClick={() => setMenu(!menu)}><Icon name={menu ? 'close' : 'menu'} /></button>
         </div>
       </header>
       )}
-      <main>{children}</main>
+      <main><ErrorBoundary key={route.name}>{children}</ErrorBoundary></main>
       <footer>
         <Brand footer />
         <span>© 2026 SpendX</span>
@@ -79,5 +84,6 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
       </footer>
       <WalletModal />
     </div>
+    </SettingsProvider>
   );
 }

@@ -4,7 +4,10 @@ import { errorMessage } from '../lib/errors.ts';
 import { readBalances } from '../lib/balances.ts';
 import type { BalanceRow } from '../lib/balances.ts';
 import { evmChainFor } from '../lib/chains.ts';
-import { chainLabel, formatUsd, tokenOptionLabel } from '../lib/labels.ts';
+import { chainLabel, tokenOptionLabel } from '../lib/labels.ts';
+import { HIDDEN, SMALL_BALANCE_USD } from '../lib/settings.ts';
+import { loadPortfolioHistory, onLocalDataCleared, savePortfolioHistory } from '../lib/local-data.ts';
+import { useSettings } from '../settings/SettingsContext.tsx';
 import { addSnapshot, dailyChange, failedCount, formatAmount, formatChange, portfolioTargets, priceHistoryChange, sinceLabel, sparkPaths, toHoldings, totalUsd } from '../lib/portfolio.ts';
 import type { PortfolioTarget, Range, Snapshot } from '../lib/portfolio.ts';
 import type { CatalogChain } from '../lib/types.ts';
@@ -16,16 +19,11 @@ const CHAINS_AT_ONCE = 2;
 
 type Scan = { targets: PortfolioTarget[]; rows: BalanceRow[] };
 
-const HISTORY_KEY = 'spendx.portfolio.history.v1';
-const loadHistory = (key: string): Snapshot[] => {
-  try { const all = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '{}'); return Array.isArray(all[key]) ? all[key] : []; } catch { return []; }
-};
-const saveHistory = (key: string, list: Snapshot[]) => {
-  try { const all = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '{}'); all[key] = list; localStorage.setItem(HISTORY_KEY, JSON.stringify(all)); } catch { /* storage unavailable */ }
-};
-
 export function Portfolio() {
   const w = useWallets();
+  const { settings, money } = useSettings();
+  const hide = settings.hideBalances;
+  const shownMoney = (usd: number) => (hide ? HIDDEN : money(usd));
   const [chains, setChains] = useState<CatalogChain[]>([]);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [scans, setScans] = useState<Record<string, Scan>>({});
@@ -78,21 +76,25 @@ export function Portfolio() {
   const all = useMemo(() => Object.values(scans), [scans]);
   const holdings = useMemo(() => toHoldings(all.flatMap((s) => s.targets), all.flatMap((s) => s.rows)), [all]);
   const failed = useMemo(() => failedCount(all.flatMap((s) => s.rows)), [all]);
-  const heldChains = useMemo(() => [...new Set(holdings.map((h) => h.target.blockchain))].sort(), [holdings]);
-  const shown = chainFilter === 'all' ? holdings : holdings.filter((h) => h.target.blockchain === chainFilter);
+  // "Hide small balances" only trims the list; the total above still counts everything.
+  const visible = useMemo(() => (settings.hideSmall ? holdings.filter((h) => h.value === null || h.value >= SMALL_BALANCE_USD) : holdings), [holdings, settings.hideSmall]);
+  const smallHidden = holdings.length - visible.length;
+  const heldChains = useMemo(() => [...new Set(visible.map((h) => h.target.blockchain))].sort(), [visible]);
+  const shown = chainFilter === 'all' ? visible : visible.filter((h) => h.target.blockchain === chainFilter);
   const scanning = progress.total > 0 && progress.done < progress.total;
   const unpriced = holdings.some((h) => h.value === null);
 
   useEffect(() => { if (chainFilter !== 'all' && !heldChains.includes(chainFilter) && !scanning) setChainFilter('all'); }, [chainFilter, heldChains, scanning]);
 
-  useEffect(() => { setHistory(connected ? loadHistory(walletKey) : []); }, [walletKey, connected]);
+  useEffect(() => { setHistory(connected ? loadPortfolioHistory(walletKey) : []); }, [walletKey, connected]);
+  useEffect(() => onLocalDataCleared(() => setHistory([])), []);
 
   // One saved point per finished scan, and only when every balance was read: a failed read must never look like a drop in value.
   const total = totalUsd(holdings);
   useEffect(() => {
     if (!connected || scanning || progress.total === 0 || failed > 0 || recorded.current === run.current) return;
     recorded.current = run.current;
-    setHistory((h) => { const next = addSnapshot(h, Date.now(), total); saveHistory(walletKey, next); return next; });
+    setHistory((h) => { const next = addSnapshot(h, Date.now(), total); savePortfolioHistory(walletKey, next); return next; });
   }, [connected, scanning, progress.total, failed, total, walletKey]);
 
   // Real price history (symbols only go to the server). Asked once per set of held tokens, after the scan finishes.
@@ -107,7 +109,7 @@ export function Portfolio() {
   const priceChange = useMemo(() => priceHistoryChange(holdings, series, range, Date.now()), [holdings, series, range]);
   const savedChange = useMemo(() => dailyChange(history, Date.now(), total), [history, total]);
   const change = priceChange ?? savedChange;
-  const fmt = change ? formatChange(change) : null;
+  const fmt = change ? formatChange(change, money) : null;
   const spark = change ? sparkPaths(change.points, 600, 120) : null;
 
   let body;
@@ -152,11 +154,12 @@ export function Portfolio() {
                 <span>{tokenOptionLabel({ ...h.target, contractAddress: h.target.contractAddress ?? null })}</span>
                 <small className="muted">{chainLabel(h.target.blockchain)}</small>
               </div>
-              <strong>{formatAmount(h.amount)}</strong>
-              <span>{h.value === null ? '–' : formatUsd(h.value)}</span>
+              <strong>{hide ? HIDDEN : formatAmount(h.amount)}</strong>
+              <span>{h.value === null ? '–' : shownMoney(h.value)}</span>
             </div>
           ))}
         </div>
+        {smallHidden > 0 && <p className="muted small" style={{ marginTop: 'var(--s3)' }}>{smallHidden} small {smallHidden === 1 ? 'balance' : 'balances'} hidden (under ${SMALL_BALANCE_USD}). Change this in Settings.</p>}
         {unpriced && <p className="muted small" style={{ marginTop: 'var(--s3)' }}>Tokens with no listed price show “–” and are left out of the total.</p>}
         {!!nearAddr && <p className="muted small" style={{ marginTop: 'var(--s3)' }}>NEAR shows tokens only; the native NEAR balance is not included.</p>}
       </>
@@ -182,11 +185,11 @@ export function Portfolio() {
             </div>
           </div>
           <div className="balance-main">
-            <strong className="balance-amount">{scanning && holdings.length === 0 ? <Skeleton w="220px" h="52px" /> : formatUsd(total)}</strong>
+            <strong className="balance-amount">{scanning && holdings.length === 0 ? <Skeleton w="220px" h="52px" /> : shownMoney(total)}</strong>
             {fmt && <span className={`delta ${fmt.sign}`}>{fmt.pct}</span>}
           </div>
           <div className="balance-sub muted small">
-            {fmt && change ? <><span className={`delta-abs ${fmt.sign}`}>{fmt.abs}</span><span>{sinceLabel(change.sinceMs)}</span><span aria-hidden="true">·</span></> : null}
+            {fmt && change ? <>{!hide && <span className={`delta-abs ${fmt.sign}`}>{fmt.abs}</span>}<span>{sinceLabel(change.sinceMs)}</span><span aria-hidden="true">·</span></> : null}
             <span>{holdings.length} {holdings.length === 1 ? 'token' : 'tokens'}</span><span aria-hidden="true">·</span><span>{w.connectedCount} {w.connectedCount === 1 ? 'wallet' : 'wallets'}</span>
           </div>
           {spark ? (

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { iconSources, useIconMaps } from '../lib/icons.ts';
 import { chainColor, chainMark, contrastText, tokenColor, tokenMark } from '../lib/colors.ts';
 
-export type IconName = 'arrow' | 'arrowDown' | 'check' | 'chevron' | 'clock' | 'close' | 'copy' | 'external' | 'history' | 'info' | 'link' | 'menu' | 'plus' | 'route' | 'search' | 'shield' | 'swap' | 'wallet' | 'alert' | 'sparkle';
+export type IconName = 'arrow' | 'arrowDown' | 'check' | 'chevron' | 'clock' | 'close' | 'copy' | 'external' | 'history' | 'info' | 'link' | 'menu' | 'plus' | 'route' | 'search' | 'shield' | 'swap' | 'wallet' | 'alert' | 'sparkle' | 'settings' | 'sun' | 'moon' | 'themeHalf' | 'coins' | 'bars' | 'database' | 'back';
 
 const PATHS: Record<IconName, ReactNode> = {
   arrow: <path d="M5 12h14m-5-5 5 5-5 5" />,
@@ -25,6 +25,14 @@ const PATHS: Record<IconName, ReactNode> = {
   swap: (<><path d="M7 7h11l-3-3M17 17H6l3 3" /><path d="m18 7-3 3M6 17l3-3" /></>),
   wallet: (<><path d="M4 6a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v15H5a2 2 0 0 1-2-2V6Z" /><path d="M3 7h15M15 12h6v5h-6a2.5 2.5 0 0 1 0-5Z" /></>),
   sparkle: <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Zm7 11 .8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14Z" />,
+  settings: (<><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></>),
+  sun: (<><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></>),
+  moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />,
+  themeHalf: (<><circle cx="12" cy="12" r="9" /><path d="M12 3v18a9 9 0 0 0 0-18Z" fill="currentColor" /></>),
+  coins: (<><circle cx="9" cy="9" r="6" /><path d="M14.5 14.8A6 6 0 1 0 9.2 20 6 6 0 0 0 20 14.8a6 6 0 0 0-5.5-5.7" /></>),
+  bars: <path d="M6 20v-9M12 20V4M18 20v-6" />,
+  database: (<><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" /></>),
+  back: <path d="m15 18-6-6 6-6" />,
   alert: (<><path d="M12 3 2 20h20L12 3Z" /><path d="M12 10v4M12 17h.01" /></>),
 };
 

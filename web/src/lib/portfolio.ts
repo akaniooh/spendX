@@ -116,15 +116,10 @@ export function sinceLabel(ms: number): string {
   return `${Math.round(h / 24)}d ago`;
 }
 
-export function formatChange(c: DailyChange): { pct: string; abs: string; sign: 'up' | 'down' | 'flat' } {
+export function formatChange(c: DailyChange, money: (usd: number) => string = (n) => `$${n.toFixed(2)}`): { pct: string; abs: string; sign: 'up' | 'down' | 'flat' } {
   const sign = Math.abs(c.pct) < 0.005 ? 'flat' : c.pct > 0 ? 'up' : 'down';
   const s = c.pct > 0 ? '+' : c.pct < 0 ? '-' : '';
-  const a = Math.abs(c.abs);
-  return {
-    sign,
-    pct: `${s}${Math.abs(c.pct).toFixed(2)}%`,
-    abs: `${c.abs < 0 ? '-' : c.abs > 0 ? '+' : ''}$${a < 0.01 && a > 0 ? '0.01' : a.toFixed(2)}`,
-  };
+  return { sign, pct: `${s}${Math.abs(c.pct).toFixed(2)}%`, abs: `${c.abs < 0 ? '-' : c.abs > 0 ? '+' : ''}${money(Math.abs(c.abs))}` };
 }
 
 /** SVG path data for a line and the area under it, scaled to a w x h box. A single point draws a flat line. */

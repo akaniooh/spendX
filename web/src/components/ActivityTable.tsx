@@ -4,9 +4,10 @@ import { forWallets, loadHistory, sameAddress } from '../lib/history.ts';
 import type { HistoryEntry } from '../lib/history.ts';
 import type { ConnectableFamily } from '../wallets/WalletContext.tsx';
 import { useWallets } from '../wallets/WalletContext.tsx';
+import { useSettings } from '../settings/SettingsContext.tsx';
+import { onLocalDataCleared } from '../lib/local-data.ts';
 import { ChainIcon, Icon, Skeleton } from './Icon.tsx';
 
-const PAGE_SIZE = 10;
 
 type Known = { label: string; kind: string };
 
@@ -55,6 +56,10 @@ export function ActivityTable({ limit, swapsOnly = false }: { limit?: number; sw
   const [err, setErr] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const tableTop = useRef<HTMLDivElement>(null);
+  const pageSize = useSettings().settings.activityPageSize;
+  // Bumped when Settings clears the activity saved in this browser, so the list refreshes without a reload.
+  const [clearedAt, setClearedAt] = useState(0);
+  useEffect(() => onLocalDataCleared(() => setClearedAt((n) => n + 1)), []);
 
   const evmAddr = evm?.address ?? null;
   const svmAddr = svm?.address ?? null;
@@ -62,7 +67,7 @@ export function ActivityTable({ limit, swapsOnly = false }: { limit?: number; sw
   const connected = !!(evmAddr || svmAddr || nearAddr);
 
   // Nothing is shown until a wallet is connected; then only what that wallet made.
-  const local = useMemo(() => forWallets(loadHistory(), [evmAddr, svmAddr, nearAddr]), [evmAddr, svmAddr, nearAddr]);
+  const local = useMemo(() => forWallets(loadHistory(), [evmAddr, svmAddr, nearAddr]), [evmAddr, svmAddr, nearAddr, clearedAt]);
 
   // A saved sign-in only counts while the wallet it belongs to is connected. Each connected wallet syncs on its own sign-in.
   const activeSessions = useMemo(
@@ -132,9 +137,9 @@ export function ActivityTable({ limit, swapsOnly = false }: { limit?: number; sw
     return swapsOnly ? merged.filter((r) => !r.kind || r.kind === 'swap') : merged;
   }, [remote, local, swapsOnly]);
   const paged = limit === undefined;
-  const pageCount = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(allRows.length / pageSize));
   const current = Math.min(page, pageCount);
-  const rows = paged ? allRows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE) : allRows.slice(0, limit);
+  const rows = paged ? allRows.slice((current - 1) * pageSize, current * pageSize) : allRows.slice(0, limit);
   useEffect(() => { if (page > pageCount) setPage(pageCount); }, [page, pageCount]);
 
   function goTo(n: number) {
@@ -216,7 +221,7 @@ export function ActivityTable({ limit, swapsOnly = false }: { limit?: number; sw
       {paged && pageCount > 1 && (
         <nav className="pager" aria-label="Activity pages">
           <span className="pager-info" aria-live="polite">
-            Showing <strong>{(current - 1) * PAGE_SIZE + 1}–{Math.min(current * PAGE_SIZE, allRows.length)}</strong> of {allRows.length}
+            Showing <strong>{(current - 1) * pageSize + 1}–{Math.min(current * pageSize, allRows.length)}</strong> of {allRows.length}
           </span>
           <div className="pager-controls">
             <button type="button" className="pager-btn edge" onClick={() => goTo(current - 1)} disabled={current === 1} aria-label="Previous page">

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../lib/api.ts';
 import type { AssistantResult, AttemptView, CatalogChain, CatalogToken, RequestView, SwapPreview } from '../lib/types.ts';
-import { chainLabel, formatDuration, formatUsd, shortAddr } from '../lib/labels.ts';
+import { chainLabel, formatDuration, formatFeePct, formatUsd, shortAddr } from '../lib/labels.ts';
 import { errorMessage } from '../lib/errors.ts';
 import { evmChainFor } from '../lib/chains.ts';
 import { estimateAddress, formatRate, indicativeRate } from '../lib/estimate.ts';
@@ -254,6 +254,7 @@ export function Swap() {
               }</dd></div>
               <div><dt>Minimum received</dt><dd className={preview ? 'good' : ''}>{loading ? <Skeleton w="110px" /> : preview ? `${preview.minOutFormatted} ${to.symbol}` : '–'}</dd></div>
               <div><dt>Estimated cost</dt><dd>{loading ? <Skeleton w="90px" /> : preview ? `${formatUsd(preview.estimatedCostUsd)} (${costPct.toFixed(2)}%)` : '–'}</dd></div>
+              {!loading && preview?.spendxFee && <div><dt>Includes SpendX fee</dt><dd>{formatFeePct(preview.spendxFee.bps)} ({formatUsd(preview.spendxFee.usd)})</dd></div>}
               <div><dt>Estimated time</dt><dd>{loading ? <Skeleton w="50px" /> : preview ? formatDuration(preview.timeEstimateSeconds) : '–'}</dd></div>
             </dl>
           )}

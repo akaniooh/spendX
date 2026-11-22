@@ -1,3 +1,5 @@
+import { ACTIVITY_HISTORY_KEY } from './local-data.ts';
+
 export interface HistoryEntry {
   attemptId: string;
   slug: string;
@@ -13,7 +15,7 @@ export interface HistoryEntry {
 }
 
 const MAX = 50;
-const KEY = 'spendx.history';
+const KEY = ACTIVITY_HISTORY_KEY;
 
 export function addHistory(list: HistoryEntry[], e: HistoryEntry): HistoryEntry[] {
   return [e, ...list.filter((x) => x.attemptId !== e.attemptId)].slice(0, MAX);

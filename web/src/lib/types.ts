@@ -31,4 +31,6 @@ export interface QuotePreview {
   refundFee?: string;
   withdrawFee?: string;
   minAmountIn: string;
+  /** SpendX's own fee, already included in estimatedCostUsd */
+  spendxFee?: { bps: number; usd: number };
 }

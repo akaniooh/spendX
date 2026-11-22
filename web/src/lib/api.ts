@@ -53,6 +53,8 @@ export const api = {
   catalog: () => call<{ chains: CatalogChain[] }>('GET', '/api/catalog'),
   /** Hourly prices for the last 7 days by token symbol (symbols only: no address or balance is sent). */
   priceHistory: (symbols: string[]) => call<{ series: Record<string, number[]> }>('POST', '/api/price-history', { symbols }),
+  /** USD to local-currency rates for display (cached on the server). */
+  rates: () => call<{ rates: Record<string, number> }>('GET', '/api/rates'),
   icons: () => call<{ chains: Record<string, string>; tokens: Record<string, string> }>('GET', '/api/icons'),
   challenge: (address: string, family: string) => call<{ challengeToken: string; message: string }>('POST', '/api/auth/challenge', { address, family }),
   verify: (b: { address: string; family: string; challengeToken: string; signature: string }) =>

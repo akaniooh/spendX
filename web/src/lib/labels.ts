@@ -24,6 +24,11 @@ export function formatUsd(n: number): string {
   return n < 0.01 && n > 0 ? '< $0.01' : `$${n.toFixed(2)}`;
 }
 
+/** 25 -> "0.25%", 30 -> "0.3%" */
+export function formatFeePct(bps: number): string {
+  return `${+(bps / 100).toFixed(2)}%`;
+}
+
 export function formatDuration(seconds: number): string {
   if (seconds < 60) return `~${Math.max(1, Math.round(seconds))}s`;
   return `~${Math.round(seconds / 60)} min`;

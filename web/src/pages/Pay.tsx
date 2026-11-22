@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../lib/api.ts';
 import type { AttemptView, CatalogChain, CatalogToken, QuotePreview, RequestView } from '../lib/types.ts';
-import { chainLabel, formatDuration, formatUsd, shortAddr } from '../lib/labels.ts';
+import { chainLabel, formatDuration, formatFeePct, formatUsd, shortAddr } from '../lib/labels.ts';
 import { errorMessage } from '../lib/errors.ts';
 import { evmChainFor } from '../lib/chains.ts';
 import { estimateAddress } from '../lib/estimate.ts';
@@ -168,6 +168,7 @@ export function Pay({ slug }: { slug: string }) {
           {token && (
             <dl className="details">
               <div><dt>Estimated fees</dt><dd>{loading ? <Skeleton w="70px" /> : preview ? formatUsd(preview.estimatedCostUsd) : '–'}</dd></div>
+              {!loading && preview?.spendxFee && <div><dt>Includes SpendX fee</dt><dd>{formatFeePct(preview.spendxFee.bps)} ({formatUsd(preview.spendxFee.usd)})</dd></div>}
               <div><dt>Expected delivery</dt><dd>{loading ? <Skeleton w="50px" /> : preview ? formatDuration(preview.timeEstimateSeconds) : '–'}</dd></div>
             </dl>
           )}

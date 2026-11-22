@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api.ts';
 import { slugFromInput } from '../lib/route.ts';
 import { parseHistory } from '../lib/history.ts';
+import { ACTIVITY_HISTORY_KEY } from '../lib/local-data.ts';
 import type { HistoryEntry } from '../lib/history.ts';
 import { shortAddr } from '../lib/labels.ts';
 import { useWallets } from '../wallets/WalletContext.tsx';
 
 function useHistory(): HistoryEntry[] {
   const [h, setH] = useState<HistoryEntry[]>([]);
-  useEffect(() => { try { setH(parseHistory(localStorage.getItem('spendx.history'))); } catch { setH([]); } }, []);
+  useEffect(() => { try { setH(parseHistory(localStorage.getItem(ACTIVITY_HISTORY_KEY))); } catch { setH([]); } }, []);
   return h;
 }
 
