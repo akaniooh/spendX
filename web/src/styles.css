@@ -189,6 +189,26 @@ button.flip:hover { color: var(--text); background: var(--surface-3); }
 .isel-empty { padding: 10px; color: var(--text-3); font-size: var(--fs-small); }
 .isel.token-select > .isel-btn .token-icon, .isel.token-select > .isel-btn .chain-icon { flex: none; }
 .token-icon.empty, .chain-icon.empty { color: var(--text-3); background: var(--surface-3); }
+/* A list anchored to a control near the right edge ran off the left side of the screen and clipped the token names.
+   Wide screens: cap the width (long names then shorten with an ellipsis). Phones: the list becomes a bottom sheet. */
+.isel-list { max-width: min(420px, calc(100vw - 24px)); }
+.isel-scrim { display: none; }
+@keyframes sheet-in { from { transform: translateY(100%); } }
+@keyframes scrim-in { from { opacity: 0; } }
+@media (max-width: 720px) {
+  .isel-scrim { display: block; position: fixed; inset: 0; z-index: 119; width: 100%; padding: 0; border: 0; border-radius: 0; background: rgba(4, 6, 9, .6); appearance: none; touch-action: none; cursor: default; animation: scrim-in .2s ease; }
+  :root[data-theme="light"] .isel-scrim { background: rgba(14, 19, 25, .45); }
+  .isel-list, .isel.align-right .isel-list {
+    position: fixed; z-index: 120; top: auto; left: 0; right: 0; bottom: 0; width: auto; min-width: 0; max-width: none; margin: 0;
+    max-height: 72vh; max-height: 72dvh; overscroll-behavior: contain;
+    padding: var(--s2) var(--s2) calc(var(--s2) + env(safe-area-inset-bottom, 0px));
+    border-width: 1px 0 0; border-radius: var(--modal-radius) var(--modal-radius) 0 0; box-shadow: 0 -16px 48px rgba(0, 0, 0, .4);
+    animation: sheet-in .22s ease;
+  }
+  .isel-list::before { content: ''; display: block; width: 36px; height: 4px; margin: var(--s1) auto var(--s3); border-radius: 2px; background: var(--line-strong); }
+  .isel-opt { min-height: 52px; padding: var(--s3); }
+  .isel-opt .isel-price { flex: none; }
+}
 
 .deliver { margin-top: var(--s1); padding: var(--s4) var(--s5); display: block; background: var(--surface-2); border-radius: var(--inner-radius); }
 .deliver > span { display: block; color: var(--text-2); font-size: var(--fs-small); }

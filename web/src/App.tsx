@@ -11,7 +11,6 @@ import { Activity } from './pages/Activity.tsx';
 import { Portfolio } from './pages/Portfolio.tsx';
 import { Payments } from './pages/Payments.tsx';
 import { WalletProvider } from './wallets/WalletContext.tsx';
-import { SettingsProvider } from './settings/SettingsContext.tsx';
 
 function useHashRoute(): Route {
   const [h, setH] = useState(() => window.location.hash.slice(1));
@@ -37,5 +36,5 @@ export default function App() {
     case 'merchant': page = <Merchant />; break;
     default: page = <section className="page-head"><h1>Page not found</h1><p><a className="link" href="#/">Go to SpendX home</a></p></section>;
   }
-  return <SettingsProvider><WalletProvider><Layout route={route}>{page}</Layout></WalletProvider></SettingsProvider>;
+  return <WalletProvider><Layout route={route}>{page}</Layout></WalletProvider>;
 }

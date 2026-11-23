@@ -98,6 +98,9 @@ export function IconSelect({ value, options, onChange, ariaLabel, placeholder, p
       </button>
       <Icon name="arrowDown" size={arrowSize} />
       {open && (
+        <>
+        {/* shown only on phones (see styles.css): dims the page behind the bottom sheet and swallows the tap that closes it */}
+        <button type="button" className="isel-scrim" tabIndex={-1} aria-hidden="true" onClick={() => setOpen(false)} />
         <ul ref={list} id={`${id}-list`} className="isel-list" role="listbox" aria-label={ariaLabel}>
           {options.length === 0 && <li className="isel-empty">Nothing to choose yet</li>}
           {options.map((o, i) => (
@@ -111,6 +114,7 @@ export function IconSelect({ value, options, onChange, ariaLabel, placeholder, p
             </li>
           ))}
         </ul>
+        </>
       )}
     </div>
   );
