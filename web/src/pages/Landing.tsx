@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { api } from '../lib/api.ts';
 import { formatDuration, formatUsd } from '../lib/labels.ts';
 import { chainLabel } from '../lib/labels.ts';
@@ -87,6 +88,20 @@ export function Landing() {
   }, []);
   const stats = chains && chains.length ? catalogStats(chains) : null;
 
+  // Scroll reveal: elements marked .lp-reveal fade up once as they enter the screen. Without JavaScript, or with
+  // "reduce motion" on, nothing is hidden (the hiding rule only applies under .lp-js, see landing.css).
+  useEffect(() => {
+    const root = document.documentElement;
+    if (typeof IntersectionObserver === 'undefined' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    root.classList.add('lp-js');
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
+    document.querySelectorAll('.lp-reveal:not(.in)').forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [assistant]); // the third card only mounts once the config has loaded, so look for new .lp-reveal elements then
+  useEffect(() => () => document.documentElement.classList.remove('lp-js'), []);
+
   return (
     <>
       <section className="lp-hero">
@@ -101,37 +116,37 @@ export function Landing() {
         <LiveQuote chains={chains} />
       </section>
 
-      <section className="lp-stats" aria-label="Coverage">
+      <section className="lp-stats lp-reveal" aria-label="Coverage">
         <div><strong>{stats ? stats.networks : <Skeleton w="48px" h="40px" />}</strong><span>networks</span></div>
         <div><strong>{stats ? stats.tokens : <Skeleton w="64px" h="40px" />}</strong><span>tokens</span></div>
         <div><strong>1</strong><span>transfer from your wallet</span></div>
       </section>
 
       <section className="lp-section" id="how">
-        <h2>How it works</h2>
+        <h2 className="lp-reveal">How it works</h2>
         <ol className="lp-steps">
           {STEPS.map((s, i) => (
-            <li key={s.title}><span className="lp-step-n">{i + 1}</span><h3>{s.title}</h3><p>{s.body}</p></li>
+            <li key={s.title} className="lp-reveal" style={{ '--i': i } as CSSProperties}><span className="lp-step-n">{i + 1}</span><h3>{s.title}</h3><p>{s.body}</p></li>
           ))}
         </ol>
       </section>
 
       <section className="lp-section" id="payments">
-        <h2>{assistant ? 'Three' : 'Two'} ways to use it</h2>
+        <h2 className="lp-reveal">{assistant ? 'Three' : 'Two'} ways to use it</h2>
         <div className="lp-features">
-          <article className="lp-feature-main">
+          <article className="lp-feature-main lp-reveal">
             <h3>Payment links</h3>
             <p>Ask for an exact amount on the network you prefer. Your customer pays with whatever they hold, and you follow the status.</p>
             <a className="lp-primary" href="#/merchant">Create a link</a>
           </article>
           <div className="lp-feature-side">
-            <article>
+            <article className="lp-reveal" style={{ '--i': 1 } as CSSProperties}>
               <h3>Swap across chains</h3>
               <p>Send 10 SOL and receive USDC on Base, or any other pair in the catalog, delivered to your own address.</p>
               <a className="lp-link" href="#/swap">Open Swap<Icon name="chevron" size={16} /></a>
             </article>
             {assistant && (
-              <article>
+              <article className="lp-reveal" style={{ '--i': 2 } as CSSProperties}>
                 <h3>Describe it in a sentence</h3>
                 <p>Type "10 SOL to USDC on Base" and SpendX fills in the form. You review it and approve in your own wallet.</p>
                 <a className="lp-link" href="#/swap">Try it<Icon name="chevron" size={16} /></a>
@@ -142,16 +157,16 @@ export function Landing() {
       </section>
 
       <section className="lp-section" id="networks">
-        <h2>Networks</h2>
+        <h2 className="lp-reveal">Networks</h2>
         {stats && <p className="lp-lead">{stats.networks} networks and {stats.tokens} tokens, read live from the NEAR Intents catalog.</p>}
-        <ul className="lp-chains">
+        <ul className="lp-chains lp-reveal">
           {chains === null
             ? Array.from({ length: 12 }, (_, i) => <li key={i}><Skeleton w="110px" h="36px" /></li>)
             : chains.map((c) => <li key={c.blockchain}><ChainIcon chain={c.blockchain} small />{chainLabel(c.blockchain)}</li>)}
         </ul>
       </section>
 
-      <section className="lp-built" id="built-on">
+      <section className="lp-built lp-reveal" id="built-on">
         <h2>Built on NEAR Intents</h2>
         <p>Quotes, routing and settlement run on NEAR Intents. SpendX adds the payment layer: exact-amount requests, checks before you pay, and delivery tracking.</p>
         <div className="lp-actions">
@@ -161,8 +176,8 @@ export function Landing() {
       </section>
 
       <section className="lp-section" id="faq">
-        <h2>Questions</h2>
-        <div className="lp-faq-list">
+        <h2 className="lp-reveal">Questions</h2>
+        <div className="lp-faq-list lp-reveal">
           {FAQ.map((f) => (
             <details key={f.q}>
               <summary>{f.q}</summary>
@@ -172,7 +187,7 @@ export function Landing() {
         </div>
       </section>
 
-      <section className="lp-final">
+      <section className="lp-final lp-reveal">
         <h2>Move something across chains</h2>
         <a className="lp-primary" href="#/swap">Launch app</a>
       </section>

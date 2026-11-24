@@ -180,7 +180,7 @@ button.flip:hover { color: var(--text); background: var(--surface-3); }
 .isel.align-right .isel-list { left: auto; right: 0; }
 .isel-opts { flex: 1; min-height: 0; margin: 0; padding: 0; list-style: none; overflow-y: auto; overscroll-behavior: contain; }
 .isel-search { flex: none; margin-bottom: 6px; padding: 0 var(--s3); height: 40px; display: flex; align-items: center; gap: var(--s2); color: var(--text-3); background: var(--surface-3); border-radius: 10px; }
-.isel-search input { flex: 1; min-width: 0; height: 100%; padding: 0; color: var(--text); background: transparent; border: 0; outline: 0; font: inherit; font-size: var(--fs-body); }
+.isel-search input { flex: 1; min-width: 0; width: auto; height: 100%; padding: 0; color: var(--text); background: transparent; border: 0; outline: 0; font: 500 var(--fs-small)/1.2 var(--font-body); letter-spacing: normal; }
 .isel-search input::placeholder { color: var(--text-3); }
 .isel-opt { display: flex; align-items: center; gap: var(--s3); padding: 9px 10px; border-radius: 10px; font-size: var(--fs-body); font-weight: 600; cursor: pointer; }
 .isel-opt.active { background: var(--surface-3); }
@@ -511,8 +511,8 @@ footer a:hover { color: var(--text); }
 .m-amount { padding: var(--s3) var(--s4) var(--s3) var(--s5); }
 .m-amount-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
 .m-amount .asset-bottom { margin-top: var(--s1); }
-.m-amount input { min-width: 0; flex: 1; padding: 0; color: var(--text); background: transparent; border: 0; outline: 0; font: 600 var(--fs-amount)/1.2 var(--font-display); letter-spacing: -.03em; }
-.m-amount input::placeholder { color: var(--text-3); opacity: .6; }
+.m-amount-row > input { min-width: 0; flex: 1; padding: 0; color: var(--text); background: transparent; border: 0; outline: 0; font: 600 var(--fs-amount)/1.2 var(--font-display); letter-spacing: -.03em; }
+.m-amount-row > input::placeholder { color: var(--text-3); opacity: .6; }
 .m-select { position: relative; height: 56px; padding: 0 var(--s4); display: flex; align-items: center; gap: var(--s3); cursor: pointer; }
 .m-select select { flex: 1; min-width: 0; height: 100%; padding: 0; background: transparent; border: 0; outline: 0; appearance: none; font-size: var(--fs-body); font-weight: 600; cursor: pointer; }
 .m-select > svg { color: var(--text-2); pointer-events: none; }
@@ -551,7 +551,7 @@ footer a:hover { color: var(--text); }
 @media (max-width: 860px) {
   .m-grid { grid-template-columns: 1fr; }
   .m-card { padding: var(--s5); }
-  .m-amount input { font-size: var(--fs-amount-sm); }
+  .m-amount-row > input { font-size: var(--fs-amount-sm); }
   .m-preview-amount { font-size: var(--fs-amount-sm); }
   .m-preview { min-height: 0; }
 }

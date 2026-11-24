@@ -90,3 +90,33 @@
   .lp-built { padding: var(--s5); }
   .lp-primary, .lp-secondary { width: 100%; }
 }
+
+/* Motion. Everything is wrapped in no-preference, so people who ask their system for less motion get a still page. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes lp-rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+  @keyframes lp-slide { from { opacity: 0; transform: translateX(32px) scale(.98); } to { opacity: 1; transform: none; } }
+  @keyframes lp-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+  /* hero: copy rises in one line at a time, the quote card slides in and then drifts */
+  .lp-hero-copy h1 { animation: lp-rise .7s cubic-bezier(.2, .7, .2, 1) both; }
+  .lp-hero-copy p { animation: lp-rise .7s .12s cubic-bezier(.2, .7, .2, 1) both; }
+  .lp-hero .lp-actions { animation: lp-rise .7s .24s cubic-bezier(.2, .7, .2, 1) both; }
+  .lp-hero .lp-quote { animation: lp-slide .9s .2s cubic-bezier(.2, .7, .2, 1) both, lp-float 7s 1.2s ease-in-out infinite; }
+
+  /* scroll reveal: hidden only once the script has run (.lp-js), shown when it adds .in */
+  .lp-js .lp-reveal { opacity: 0; transform: translateY(26px); transition: opacity .7s cubic-bezier(.2, .7, .2, 1), transform .7s cubic-bezier(.2, .7, .2, 1); transition-delay: calc(var(--i, 0) * 110ms); }
+  .lp-js .lp-reveal.in { opacity: 1; transform: none; }
+
+  /* hover */
+  .lp-primary, .lp-secondary { transition: background .15s, transform .2s cubic-bezier(.2, .7, .2, 1); }
+  .lp-primary:hover, .lp-secondary:hover { transform: translateY(-2px); }
+  .lp-primary:active, .lp-secondary:active { transform: translateY(0); }
+  .lp-feature-main { transition: background .25s, transform .3s cubic-bezier(.2, .7, .2, 1); }
+  .lp-feature-main:hover { transform: translateY(-4px); }
+  .lp-link svg { transition: transform .2s; }
+  .lp-link:hover svg { transform: translateX(3px); }
+  .lp-chains li { transition: color .15s, background .15s, transform .2s; }
+  .lp-chains li:hover { color: var(--text); background: var(--surface-2); transform: translateY(-2px); }
+  .lp-steps li { transition: transform .3s cubic-bezier(.2, .7, .2, 1); }
+  .lp-faq-list details > p { animation: lp-rise .3s ease both; }
+}
