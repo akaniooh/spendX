@@ -14,6 +14,7 @@ import type { Token } from '../../../shared/src/types.ts';
 import { useWallets } from '../wallets/WalletContext.tsx';
 import { AssetBox } from '../components/AssetBox.tsx';
 import { ChainIcon, Icon, Skeleton, TokenIcon } from '../components/Icon.tsx';
+import { CostDetails } from '../components/CostDetails.tsx';
 import { ReviewModal } from '../components/ReviewModal.tsx';
 
 const asToken = (t: CatalogToken, blockchain: string): Token => ({
@@ -166,11 +167,16 @@ export function Pay({ slug }: { slug: string }) {
           </div>
 
           {token && (
-            <dl className="details">
-              <div><dt>Estimated fees</dt><dd>{loading ? <Skeleton w="70px" /> : preview ? formatUsd(preview.estimatedCostUsd) : '–'}</dd></div>
+            <CostDetails
+              label="Estimated fees"
+              value={loading ? <Skeleton w="70px" /> : preview ? formatUsd(preview.estimatedCostUsd) : '–'}
+              expandable={!!preview?.spendxFee}
+              rows={<>
+                <div><dt>Expected delivery</dt><dd>{loading ? <Skeleton w="50px" /> : preview ? formatDuration(preview.timeEstimateSeconds) : '–'}</dd></div>
+              </>}
+            >
               {!loading && preview?.spendxFee && <div><dt>Includes SpendX fee</dt><dd>{formatFeePct(preview.spendxFee.bps)} ({formatUsd(preview.spendxFee.usd)})</dd></div>}
-              <div><dt>Expected delivery</dt><dd>{loading ? <Skeleton w="50px" /> : preview ? formatDuration(preview.timeEstimateSeconds) : '–'}</dd></div>
-            </dl>
+            </CostDetails>
           )}
           {previewErr && <p className="inline-error" style={{ margin: 'var(--s3) var(--s3) 0' }}>{previewErr}</p>}
           {error && !attempt && <p className="inline-error" style={{ margin: 'var(--s3) var(--s3) 0' }}>{error}</p>}

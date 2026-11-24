@@ -17,6 +17,7 @@ import { AssetBox } from '../components/AssetBox.tsx';
 import { AssistantBar } from '../components/AssistantBar.tsx';
 import { ActivityTable } from '../components/ActivityTable.tsx';
 import { Icon, Skeleton } from '../components/Icon.tsx';
+import { CostDetails } from '../components/CostDetails.tsx';
 import { ReviewModal } from '../components/ReviewModal.tsx';
 
 const asToken = (t: CatalogToken, blockchain: string): Token => ({
@@ -246,17 +247,22 @@ export function Swap() {
           </label>
 
           {from && to && (
-            <dl className="details">
-              <div><dt>Rate</dt><dd>{
-                loading ? <Skeleton w="150px" /> :
-                quotedRate !== null ? `1 ${from.symbol} = ${formatRate(quotedRate)} ${to.symbol}` :
-                indicative !== null ? <>{`1 ${from.symbol} ≈ ${formatRate(indicative)} ${to.symbol}`}<small>indicative</small></> : '–'
-              }</dd></div>
-              <div><dt>Minimum received</dt><dd className={preview ? 'good' : ''}>{loading ? <Skeleton w="110px" /> : preview ? `${preview.minOutFormatted} ${to.symbol}` : '–'}</dd></div>
-              <div><dt>Estimated cost</dt><dd>{loading ? <Skeleton w="90px" /> : preview ? `${formatUsd(preview.estimatedCostUsd)} (${costPct.toFixed(2)}%)` : '–'}</dd></div>
+            <CostDetails
+              label="Estimated cost"
+              expandable={!!preview?.spendxFee}
+              value={loading ? <Skeleton w="90px" /> : preview ? `${formatUsd(preview.estimatedCostUsd)} (${costPct.toFixed(2)}%)` : '–'}
+              rows={<>
+                <div><dt>Rate</dt><dd>{
+                  loading ? <Skeleton w="150px" /> :
+                  quotedRate !== null ? `1 ${from.symbol} = ${formatRate(quotedRate)} ${to.symbol}` :
+                  indicative !== null ? <>{`1 ${from.symbol} ≈ ${formatRate(indicative)} ${to.symbol}`}<small>indicative</small></> : '–'
+                }</dd></div>
+                <div><dt>Minimum received</dt><dd className={preview ? 'good' : ''}>{loading ? <Skeleton w="110px" /> : preview ? `${preview.minOutFormatted} ${to.symbol}` : '–'}</dd></div>
+                <div><dt>Estimated time</dt><dd>{loading ? <Skeleton w="50px" /> : preview ? formatDuration(preview.timeEstimateSeconds) : '–'}</dd></div>
+              </>}
+            >
               {!loading && preview?.spendxFee && <div><dt>Includes SpendX fee</dt><dd>{formatFeePct(preview.spendxFee.bps)} ({formatUsd(preview.spendxFee.usd)})</dd></div>}
-              <div><dt>Estimated time</dt><dd>{loading ? <Skeleton w="50px" /> : preview ? formatDuration(preview.timeEstimateSeconds) : '–'}</dd></div>
-            </dl>
+            </CostDetails>
           )}
           {costPct >= 3 && <p className="asset-note warn" style={{ margin: 'var(--s3) var(--s3) 0' }}>About {costPct.toFixed(1)}% of your amount goes to spread and fees. This is common for thinly traded tokens.</p>}
           {previewErr && <p className="inline-error" style={{ margin: 'var(--s3) var(--s3) 0' }}>{previewErr}</p>}

@@ -1,5 +1,7 @@
 // Block explorer transaction links, by 1Click blockchain id. Purely cosmetic: the status page prefers the
 // explorer URL that NEAR Intents itself returns for each transaction, and falls back to these.
+import { EXTRA_EVM_CHAINS } from '../../../shared/src/evm-chains.ts';
+
 const EXPLORERS: Record<string, string> = {
   eth: 'https://etherscan.io/tx/',
   base: 'https://basescan.org/tx/',
@@ -12,6 +14,7 @@ const EXPLORERS: Record<string, string> = {
   scroll: 'https://scrollscan.com/tx/',
   sol: 'https://solscan.io/tx/',
   near: 'https://nearblocks.io/txns/',
+  ...Object.fromEntries(Object.entries(EXTRA_EVM_CHAINS).map(([key, c]) => [key, `${c.explorer}/tx/`])),
 };
 
 export function txUrl(blockchain: string, hash: string): string | null {

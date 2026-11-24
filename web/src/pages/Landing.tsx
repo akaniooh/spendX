@@ -94,7 +94,7 @@ export function Landing() {
           <h1>Pay on any chain with whatever you hold.</h1>
           <p>Swap across networks or pay a merchant in a single transfer. SpendX converts, bridges and delivers, then confirms the money arrived.</p>
           <div className="lp-actions">
-            <a className="lp-primary" href="#/swap">Launch app<Icon name="arrow" /></a>
+            <a className="lp-primary" href="#/swap">Launch app</a>
             <a className="lp-secondary" href="#/merchant">Create a payment link</a>
           </div>
         </div>
@@ -119,23 +119,25 @@ export function Landing() {
       <section className="lp-section" id="payments">
         <h2>{assistant ? 'Three' : 'Two'} ways to use it</h2>
         <div className="lp-features">
-          <article>
-            <h3>Swap across chains</h3>
-            <p>Send 10 SOL and receive USDC on Base, or any other pair in the catalog, delivered to your own address.</p>
-            <a className="lp-link" href="#/swap">Open Swap<Icon name="chevron" size={16} /></a>
-          </article>
-          <article>
+          <article className="lp-feature-main">
             <h3>Payment links</h3>
             <p>Ask for an exact amount on the network you prefer. Your customer pays with whatever they hold, and you follow the status.</p>
-            <a className="lp-link" href="#/merchant">Create a link<Icon name="chevron" size={16} /></a>
+            <a className="lp-primary" href="#/merchant">Create a link</a>
           </article>
-          {assistant && (
+          <div className="lp-feature-side">
             <article>
-              <h3>Describe it in a sentence</h3>
-              <p>Type "10 SOL to USDC on Base" and SpendX fills in the form. You review it and approve in your own wallet.</p>
-              <a className="lp-link" href="#/swap">Try it<Icon name="chevron" size={16} /></a>
+              <h3>Swap across chains</h3>
+              <p>Send 10 SOL and receive USDC on Base, or any other pair in the catalog, delivered to your own address.</p>
+              <a className="lp-link" href="#/swap">Open Swap<Icon name="chevron" size={16} /></a>
             </article>
-          )}
+            {assistant && (
+              <article>
+                <h3>Describe it in a sentence</h3>
+                <p>Type "10 SOL to USDC on Base" and SpendX fills in the form. You review it and approve in your own wallet.</p>
+                <a className="lp-link" href="#/swap">Try it<Icon name="chevron" size={16} /></a>
+              </article>
+            )}
+          </div>
         </div>
       </section>
 
@@ -172,7 +174,7 @@ export function Landing() {
 
       <section className="lp-final">
         <h2>Move something across chains</h2>
-        <a className="lp-primary" href="#/swap">Launch app<Icon name="arrow" /></a>
+        <a className="lp-primary" href="#/swap">Launch app</a>
       </section>
     </>
   );

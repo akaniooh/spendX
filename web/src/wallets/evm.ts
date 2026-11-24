@@ -3,6 +3,7 @@ import type { WalletAdapter, DepositRequest } from '../../../shared/src/adapters
 import { classifyDeposit } from '../../../shared/src/deposit-kind.ts';
 import type { Token } from '../../../shared/src/types.ts';
 import { evmChainFor, txUrl } from '../lib/chains.ts';
+import { switchOrAddChain } from '../lib/switch-chain.ts';
 
 // EVM wallets via EIP-6963 discovery (MetaMask, Coinbase Wallet, Rabby, ...) and plain viem.
 // Deliberately no wagmi: its hooks changed incompatibly between v2 and v3, and we need very little of it.
@@ -92,7 +93,7 @@ export class EvmWallet implements WalletAdapter {
     const to = req.depositAddress as `0x${string}`;
 
     const wc = this.wc();
-    await wc.switchChain({ id: chain.id }); // the wallet asks the user to approve the network switch
+    await switchOrAddChain(wc, chain); // the wallet asks the user to approve a network switch, or to add the network first
 
     if (kind.kind === 'evm-native') {
       const hash = await wc.sendTransaction({ account: this.address, chain, to, value: req.amount });
