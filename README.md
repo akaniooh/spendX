@@ -191,16 +191,17 @@ Supported wallet families: **Solana, EVM and NEAR**. Merchants can request payme
 | --- | --- |
 | 1Click client, dynamic catalog, exact-output and exact-input quotes, live-quote validation, signature check | Implemented. Tokens and dry quotes verified against the live API |
 | Payment service (requests, previews, attempts, deposits, status, refunds, expiry, duplicate protection, background reconciler) | Implemented, unit-tested |
-| Merchant sign-in by wallet signature (EVM and Solana) | Implemented. Solana tested with real keys; EVM tested with a real wallet |
+| Merchant sign-in by wallet signature (EVM and Solana) | Implemented. Solana tested with real keys; EVM exercised with a real wallet |
 | Merchant sign-in with a NEAR wallet (NEP-413) | *Not yet implemented* (sign in with EVM or Solana; you can still receive on NEAR) |
 | REST API and Express server | Implemented and deployed (Render API, Vercel site) |
 | Web app: landing page, swap workspace, payment screen, wallet modal, review modal, activity, merchant dashboard, live status tracker | Implemented and running in the browser |
 | Solana balance and token reads through the server proxy | Implemented and confirmed working in the deployed setup |
 | One-click **Swap** (exact input, delivered to your own address) | Implemented end to end and exercised with real funds |
 | Paying from **EVM wallets**: native and ERC-20 on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Gnosis, Scroll | Implemented and tested with real funds |
-| Paying from **Phantom (Solana)**: native SOL and classic SPL tokens (creates the recipient's token account when missing) | Implemented and tested with real funds*. Token-2022 mints are refused on purpose (they can carry transfer fees or hooks) |
-| Paying from a **NEAR wallet**: NEP-141 tokens, including one-time storage registration | Implemented; adapter logic unit-tested against a fake NEAR RPC; run with a real wallet or funds |
-| Independent delivery verification on **EVM and Solana** destinations | Implemented; tested against simulated chain responses (correct, wrong recipient, too little, reverted, not yet visible) run against live chains also |
+| Paying from six more EVM chains: Berachain, X Layer, Monad, ADI Chain, Plasma, Aurora (the wallet is asked to add the network if it does not have it) | Implemented 2026-11-24; chain ids checked against each chain's docs; not yet tested with real funds or a live catalog |
+| Paying from **Phantom (Solana)**: native SOL and classic SPL tokens (creates the recipient's token account when missing) | Implemented and tested with real funds. Token-2022 mints are refused on purpose (they can carry transfer fees or hooks) |
+| Paying from a **NEAR wallet**: NEP-141 tokens, including one-time storage registration | Implemented; adapter logic unit-tested against a fake NEAR RPC and run with a real wallet or funds |
+| Independent delivery verification on **EVM and Solana** destinations | Implemented; tested against simulated chain responses (correct, wrong recipient, too little, reverted, not yet visible) and run against live chains |
 | Delivery verification for **NEAR** and other destinations | *Not available*: shown as "reported by NEAR Intents" with the transaction link |
 | AI assistant (swap sentence to a pre-filled card; balance questions; pasted payment links open directly) | Implemented, unit-tested with simulated replies. Works with Anthropic or any OpenAI-compatible endpoint, with an optional fallback model. Hidden unless a key is set |
 | Supabase storage | Required in production (the server refuses `REPOSITORY=memory`). Check a connection with `npm run db:check` |
@@ -349,6 +350,16 @@ If `npm ci` fails on a lockfile mismatch, regenerate the lockfile with `npx npm@
    *Expected:* the **You receive** box fills from a live quote, with rate, guaranteed minimum, cost and time under the card. Changing slippage or amount refreshes it. A warning appears if spread and fees exceed about 3%.
 6. **Try the assistant** (needs an AI key). Type `10 SOL to USDC on Base`.
    *Expected:* the card fills in and nothing is sent. Typing `swap some USDC to SOL` returns a question, not a guess. Pasting a SpendX payment link opens it directly.
+
+### New EVM chains (Berachain, X Layer, Monad, ADI, Plasma, Aurora)
+
+Their ids, RPCs and explorers live in shared/src/evm-chains.ts. A wrong chain id could send a payment on the wrong network, so check before the first real payment:
+
+npm run chains:check asks each chain's own RPC for its id and compares it with the table. Read-only. Expected: OK for every line and No chain id mismatches. Any MISMATCH means do not pay on that chain. UNREACHABLE only means that public RPC did not answer from your machine.
+npm run discover -- --find MON (and BERA, OKB, XPL, ADI) shows whether the live catalog lists each native coin with the symbol and 18 decimals in the table. If it does not, that coin stays blocked on purpose; USDC and other tokens still work.
+Make one small real payment on each chain. The wallet may ask you to add the network first: approve it, then approve the transfer. Check the status page shows Verified on-chain.
+
+Public RPCs are rate limited. Set RPC_URL_MONAD, RPC_URL_BERA and so on on the server for production. New chains carry no SpendX fee until you add them to FEE_ROUTES after a real test.
 
 ### Fee check (optional, no funds)
 
