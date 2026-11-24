@@ -56,6 +56,7 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
       ) : (
       <header className="topbar">
         <Brand />
+        {menu && <button className="nav-scrim" aria-label="Close menu" onClick={() => setMenu(false)} />}
         <nav className={menu ? 'nav open' : 'nav'} aria-label="Main">
           {NAV.map((n) => (
             <a key={n.href} href={n.href} className={n.names.includes(route.name) ? 'active' : ''} aria-current={n.names.includes(route.name) ? 'page' : undefined}>{n.label}</a>
@@ -65,7 +66,7 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
           {down && <span className="server-warning" role="status">Server unreachable</span>}
           <button className={`wallet-button ${w.connectedCount ? 'connected' : ''}`} onClick={w.openWalletModal}>
             <Icon name="wallet" size={18} />
-            {w.connectedCount === 0 ? 'Connect wallet' : first ? shortAddr(first, 4, 4) : 'Wallets'}
+            {w.connectedCount === 0 ? <><span className="wl-long">Connect wallet</span><span className="wl-short">Connect</span></> : first ? shortAddr(first, 4, 4) : 'Wallets'}
             {w.connectedCount > 1 && ` +${w.connectedCount - 1}`}
           </button>
           <ErrorBoundary silent><SettingsMenu /></ErrorBoundary>

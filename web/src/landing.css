@@ -78,7 +78,7 @@
 .lp-final { padding: var(--s8) 0 var(--s7); text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--s5); }
 
 @media (max-width: 900px) {
-  .lp-hero { grid-template-columns: 1fr; gap: var(--s6); padding-top: var(--s7); }
+  .lp-hero { grid-template-columns: minmax(0, 1fr); gap: var(--s6); padding-top: var(--s7); }
   .lp-steps { grid-template-columns: 1fr; }
   .lp-features { grid-template-columns: 1fr; }
   .lp-feature-main { padding: var(--s6) var(--s5); }
@@ -86,6 +86,23 @@
 }
 @media (max-width: 720px) {
   .lp-top .nav { display: none; }
+  .lp-top { justify-content: space-between; }
+  .lp-launch { height: 40px; padding: 0 var(--s4); }
+  .lp-hero { padding: var(--s6) 0 var(--s6); gap: var(--s5); }
+  .lp-hero-copy h1 { font-size: clamp(32px, 10vw, 40px); }
+  .lp-hero-copy p { margin-top: var(--s4); font-size: var(--fs-body); }
+  .lp-actions { margin-top: var(--s5); }
+  .lp-quote-box { padding: var(--s3) var(--s4); }
+  .lp-quote-amount { flex-wrap: wrap; row-gap: var(--s2); }
+  .lp-quote-amount strong { font-size: var(--fs-amount-sm); min-width: 0; overflow-wrap: anywhere; }
+  .lp-token { max-width: 100%; min-width: 0; }
+  .lp-token small { display: none; }
+  .lp-section { padding-top: var(--s7); }
+  .lp-feature-main { padding: var(--s5) var(--s4); }
+  .lp-faq-list summary { font-size: var(--fs-body); padding: var(--s4) 0; }
+  .lp-faq-list p { padding-right: 0; }
+  .lp-chains li { height: 36px; }
+  .lp-final { padding: var(--s7) 0 var(--s6); }
   .lp-stats { grid-template-columns: 1fr; gap: var(--s4); }
   .lp-built { padding: var(--s5); }
   .lp-primary, .lp-secondary { width: 100%; }

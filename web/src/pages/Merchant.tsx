@@ -50,6 +50,8 @@ function SignIn() {
   );
 }
 
+const HISTORY_LIMIT = 5;
+
 function CreateRequest({ token, chains, stats, onCreated }: { token: string; chains: CatalogChain[]; stats: MerchantData['stats'] | null; onCreated: () => void }) {
   const w = useWallets();
   const [chain, setChain] = useState('');
@@ -209,17 +211,17 @@ function History({ data, err }: { data: MerchantData | null; err: string | null 
         err ? <p className="inline-error">{err}</p> : <><Skeleton w="100%" h="48px" block /><div style={{ height: 'var(--s3)' }} /><Skeleton w="100%" h="48px" block /></>
       ) : data.requests.length === 0 ? <p className="text-3">No payment requests yet.</p> : (
         <div className="tablewrap">
-          <table>
+          <table className="m-table">
             <thead><tr><th>Created</th><th>Amount</th><th>Status</th><th>Details</th></tr></thead>
             <tbody>
-              {data.requests.map(({ request: r, latestAttempt: a }) => {
+              {[...data.requests].sort((x, y) => +new Date(y.request.createdAt) - +new Date(x.request.createdAt)).slice(0, HISTORY_LIMIT).map(({ request: r, latestAttempt: a }) => {
                 const active = r.status === 'open';
                 return (
                   <tr key={r.slug}>
-                    <td>{new Date(r.createdAt).toLocaleString()}</td>
-                    <td><span className="m-asset"><TokenIcon symbol={r.destination.symbol} chain={r.destination.blockchain} small />{r.destination.amountFormatted} {r.destination.symbol} <span className="muted">on</span> <ChainIcon chain={r.destination.blockchain} small /><span className="muted">{chainLabel(r.destination.blockchain)}</span></span>{r.description ? <div className="muted">{r.description}</div> : null}</td>
-                    <td>{chip(a, r.status)}</td>
-                    <td>
+                    <td data-label="Created">{new Date(r.createdAt).toLocaleString()}</td>
+                    <td data-label="Amount"><span className="m-asset"><TokenIcon symbol={r.destination.symbol} chain={r.destination.blockchain} small />{r.destination.amountFormatted} {r.destination.symbol} <span className="muted">on</span> <ChainIcon chain={r.destination.blockchain} small /><span className="muted">{chainLabel(r.destination.blockchain)}</span></span>{r.description ? <div className="muted">{r.description}</div> : null}</td>
+                    <td data-label="Status">{chip(a, r.status)}</td>
+                    <td data-label="Details">
                       {active ? (
                         <span className="row" style={{ gap: 'var(--s1)', alignItems: 'center' }}>
                           <span className="muted">pending</span>
@@ -243,6 +245,9 @@ function History({ data, err }: { data: MerchantData | null; err: string | null 
             </tbody>
           </table>
         </div>
+      )}
+      {data && data.requests.length > HISTORY_LIMIT && (
+        <p className="m-history-more"><span className="muted small">Showing your {HISTORY_LIMIT} most recent links.</span> <a className="link-button" href="#/activity">View all in Activity <Icon name="chevron" size={16} /></a></p>
       )}
       {actionErr && <p className="inline-error">{actionErr}</p>}
       {data && err && <p className="inline-error">{err}</p>}
