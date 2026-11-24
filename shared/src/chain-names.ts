@@ -4,6 +4,7 @@ export const CHAIN_NAMES: Record<string, string> = {
   avax: 'Avalanche', gnosis: 'Gnosis', scroll: 'Scroll', sol: 'Solana', near: 'NEAR', btc: 'Bitcoin',
   ton: 'TON', sui: 'Sui', aptos: 'Aptos', tron: 'TRON', doge: 'Dogecoin', ltc: 'Litecoin', xrp: 'XRP',
   zec: 'Zcash', stellar: 'Stellar', starknet: 'Starknet', cardano: 'Cardano', bera: 'Berachain',
-  monad: 'Monad', plasma: 'Plasma', xlayer: 'X Layer',
+  monad: 'Monad', plasma: 'Plasma', xlayer: 'X Layer', adi: 'ADI Chain', aurora: 'Aurora',
+  hood: 'Robinhood Chain',
 };
 export const chainName = (blockchain: string): string => CHAIN_NAMES[blockchain] ?? blockchain.toUpperCase();

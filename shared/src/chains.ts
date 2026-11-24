@@ -3,9 +3,9 @@
 // id by signing/address family. EVM and Solana lists follow docs.near-intents.org/resources/chain-support.
 export type WalletFamily = 'evm' | 'svm' | 'near' | 'other';
 
-const EVM_CHAINS = new Set([
+export const EVM_CHAINS = new Set([
   'eth', 'base', 'arb', 'op', 'pol', 'bsc', 'avax', 'gnosis', 'scroll',
-  'bera', 'xlayer', 'monad', 'adi', 'plasma', 'aurora',
+  'bera', 'xlayer', 'monad', 'adi', 'plasma', 'aurora', 'hood',
 ]);
 
 export function familyOf(blockchain: string): WalletFamily {
