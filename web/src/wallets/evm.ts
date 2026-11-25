@@ -1,8 +1,9 @@
-import { createPublicClient, createWalletClient, custom, erc20Abi, http } from 'viem';
+import { createPublicClient, createWalletClient, custom, erc20Abi } from 'viem';
 import type { WalletAdapter, DepositRequest } from '../../../shared/src/adapters.ts';
 import { classifyDeposit } from '../../../shared/src/deposit-kind.ts';
 import type { Token } from '../../../shared/src/types.ts';
 import { evmChainFor, txUrl } from '../lib/chains.ts';
+import { readTransport } from './rpc.ts';
 import { switchOrAddChain } from '../lib/switch-chain.ts';
 
 // EVM wallets via EIP-6963 discovery (MetaMask, Coinbase Wallet, Rabby, ...) and plain viem.
@@ -73,7 +74,7 @@ export class EvmWallet implements WalletAdapter {
   async getBalance(token: Token): Promise<bigint> {
     const chain = evmChainFor(token.blockchain);
     if (!chain || !this.address) throw new Error('Cannot read balance for this chain');
-    const pc = createPublicClient({ chain, transport: http() });
+    const pc = createPublicClient({ chain, transport: readTransport(token.blockchain) });
     const kind = classifyDeposit(token, chain.nativeCurrency);
     if (kind.kind === 'evm-native') return pc.getBalance({ address: this.address });
     if (kind.kind === 'evm-erc20') return pc.readContract({ address: kind.contract, abi: erc20Abi, functionName: 'balanceOf', args: [this.address] });
@@ -100,7 +101,7 @@ export class EvmWallet implements WalletAdapter {
       return { txHash: hash };
     }
     // ERC-20: confirm the contract's on-chain decimals match the catalog before moving any funds
-    const pc = createPublicClient({ chain, transport: http() });
+    const pc = createPublicClient({ chain, transport: readTransport(req.token.blockchain) });
     const decimals = await pc.readContract({ address: kind.contract, abi: erc20Abi, functionName: 'decimals' });
     if (Number(decimals) !== req.token.decimals) throw new Error('Token decimals on-chain do not match the catalog; refusing to send');
     const hash = await wc.writeContract({ account: this.address, chain, address: kind.contract, abi: erc20Abi, functionName: 'transfer', args: [to, req.amount] });
