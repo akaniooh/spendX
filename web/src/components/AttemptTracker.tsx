@@ -3,7 +3,7 @@ import { api } from '../lib/api.ts';
 import type { AttemptView, RequestView } from '../lib/types.ts';
 import { chainLabel, shortAddr } from '../lib/labels.ts';
 import { errorMessage } from '../lib/errors.ts';
-import { txUrl } from '../lib/chains.ts';
+import { safeExplorerUrl, txUrl } from '../lib/explorer.ts';
 import { mmss, secondsLeft, useNow } from '../lib/hooks.ts';
 import { Skeleton } from './Icon.tsx';
 
@@ -16,7 +16,8 @@ const STEPS: { state: AttemptView['state']; label: string }[] = [
 ];
 
 function Link({ href, children }: { href: string | null; children: string }) {
-  return href ? <a href={href} target="_blank" rel="noreferrer noopener">{children}</a> : <span>{children}</span>;
+  // Defence in depth: only plain https links become clickable, whatever the server sent.
+  return safeExplorerUrl(href) ? <a href={href!} target="_blank" rel="noreferrer noopener">{children}</a> : <span>{children}</span>;
 }
 
 export function AttemptTracker({ id }: { id: string }) {

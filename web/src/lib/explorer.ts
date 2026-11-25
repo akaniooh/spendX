@@ -1,23 +1,2 @@
-// Block explorer transaction links, by 1Click blockchain id. Purely cosmetic: the status page prefers the
-// explorer URL that NEAR Intents itself returns for each transaction, and falls back to these.
-import { EXTRA_EVM_CHAINS } from '../../../shared/src/evm-chains.ts';
-
-const EXPLORERS: Record<string, string> = {
-  eth: 'https://etherscan.io/tx/',
-  base: 'https://basescan.org/tx/',
-  arb: 'https://arbiscan.io/tx/',
-  op: 'https://optimistic.etherscan.io/tx/',
-  pol: 'https://polygonscan.com/tx/',
-  bsc: 'https://bscscan.com/tx/',
-  avax: 'https://snowtrace.io/tx/',
-  gnosis: 'https://gnosisscan.io/tx/',
-  scroll: 'https://scrollscan.com/tx/',
-  sol: 'https://solscan.io/tx/',
-  near: 'https://nearblocks.io/txns/',
-  ...Object.fromEntries(Object.entries(EXTRA_EVM_CHAINS).map(([key, c]) => [key, `${c.explorer}/tx/`])),
-};
-
-export function txUrl(blockchain: string, hash: string): string | null {
-  const base = EXPLORERS[blockchain];
-  return base && /^[A-Za-z0-9]{8,100}$/.test(hash) ? base + hash : null;
-}
+// Block explorer transaction links. The table and the safety checks live in shared/ so the server uses the same ones.
+export { txUrl, safeExplorerUrl } from '../../../shared/src/explorers.ts';
