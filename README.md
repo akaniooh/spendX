@@ -198,7 +198,7 @@ Supported wallet families: **Solana, EVM and NEAR**. Merchants can request payme
 | Solana balance and token reads through the server proxy | Implemented and confirmed working in the deployed setup |
 | One-click **Swap** (exact input, delivered to your own address) | Implemented end to end and exercised with real funds |
 | Paying from **EVM wallets**: native and ERC-20 on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Gnosis, Scroll | Implemented and tested with real funds |
-| Paying from six more EVM chains: Berachain, X Layer, Monad, ADI Chain, Plasma, Robinhood (the wallet is asked to add the network if it does not have it) | Implemented 2026-11-24; chain ids checked against each chain's docs; not yet tested with real funds or a live catalog |
+| Paying from six more EVM chains: Berachain, X Layer, Monad, ADI Chain, Plasma, Aurora (the wallet is asked to add the network if it does not have it) | Implemented 2026-11-24; chain ids checked against each chain's docs; not yet tested with real funds or a live catalog |
 | Paying from **Phantom (Solana)**: native SOL and classic SPL tokens (creates the recipient's token account when missing) | Implemented and tested with real funds. Token-2022 mints are refused on purpose (they can carry transfer fees or hooks) |
 | Paying from a **NEAR wallet**: NEP-141 tokens, including one-time storage registration | Implemented; adapter logic unit-tested against a fake NEAR RPC and run with a real wallet or funds |
 | Independent delivery verification on **EVM and Solana** destinations | Implemented; tested against simulated chain responses (correct, wrong recipient, too little, reverted, not yet visible) and run against live chains |
@@ -351,7 +351,7 @@ If `npm ci` fails on a lockfile mismatch, regenerate the lockfile with `npx npm@
 6. **Try the assistant** (needs an AI key). Type `10 SOL to USDC on Base`.
    *Expected:* the card fills in and nothing is sent. Typing `swap some USDC to SOL` returns a question, not a guess. Pasting a SpendX payment link opens it directly.
 
-### New EVM chains (Berachain, X Layer, Monad, ADI, Plasma, Robinhood)
+### New EVM chains (Berachain, X Layer, Monad, ADI, Plasma, Aurora)
 
 Their ids, RPCs and explorers live in shared/src/evm-chains.ts. A wrong chain id could send a payment on the wrong network, so check before the first real payment:
 
