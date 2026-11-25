@@ -1,6 +1,7 @@
 import type { WalletFamily } from '../../shared/src/chains.ts';
 import { fromBaseUnits } from '../../shared/src/amounts.ts';
 import { STATE_LABEL, isTerminal } from '../../shared/src/status.ts';
+import { safeExplorerUrl, txUrl } from '../../shared/src/explorers.ts';
 import type { Token } from '../../shared/src/types.ts';
 import { SpendXError } from './domain.ts';
 import type { Attempt, PaymentRequest, Repository } from './domain.ts';
@@ -82,8 +83,9 @@ export function attemptView(a: Attempt) {
       amountFormatted: fromBaseUnits(a.amountIn, a.originDecimals),
       deadline: a.quoteDeadline,
     },
-    source: a.sourceTxHash ? { txHash: a.sourceTxHash, explorerUrl: a.sourceTxUrl ?? null } : null,
-    destination: { txs: a.destTxs },
+    // Links are re-checked on the way out, so a bad value saved before this check existed is never shown either.
+    source: a.sourceTxHash ? { txHash: a.sourceTxHash, explorerUrl: safeExplorerUrl(a.sourceTxUrl) ?? txUrl(a.originBlockchain, a.sourceTxHash) } : null,
+    destination: { txs: a.destTxs.map((t) => ({ hash: t.hash, explorerUrl: safeExplorerUrl(t.explorerUrl) ?? '' })) },
     // 'verified' = SpendX checked the destination chain itself. 'reported' = NEAR Intents' report plus tx links only.
     delivery: a.state === 'destination_confirmed' ? a.verification : null,
     near: { txHashes: a.nearTxHashes, intentHashes: a.intentHashes },

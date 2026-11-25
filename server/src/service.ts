@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { validateAddress } from '../../shared/src/addresses.ts';
 import { fromBaseUnits, toBaseUnits } from '../../shared/src/amounts.ts';
+import { safeExplorerUrl, txUrl } from '../../shared/src/explorers.ts';
 import { familyOf } from '../../shared/src/chains.ts';
 import type { WalletFamily } from '../../shared/src/chains.ts';
 import { buildAppFees, feeUsdEstimate, ourShareBps } from '../../shared/src/fees.ts';
@@ -440,7 +441,8 @@ export class PaymentService {
   }
 
   /** Record the source-chain transaction the wallet produced and tell 1Click so it can start sooner. */
-  async recordDeposit(attemptId: string, txHash: string, explorerUrl?: string): Promise<Attempt> {
+  /** The explorer link is built here from the chain and hash. A link sent by the browser is ignored: see shared/src/explorers.ts. */
+  async recordDeposit(attemptId: string, txHash: string, _ignoredBrowserExplorerUrl?: string): Promise<Attempt> {
     if (!/^[^\s]{8,200}$/.test(txHash)) throw new SpendXError('invalid_tx', 'Transaction hash looks invalid');
     const a = await this.mustAttempt(attemptId);
     const shape = TX_HASH_SHAPE[familyOf(a.originBlockchain)];
@@ -453,7 +455,7 @@ export class PaymentService {
     const updated = await this.d.repo.updateAttempt(a.id, {
       walletSigned: true,
       sourceTxHash: txHash,
-      sourceTxUrl: explorerUrl,
+      sourceTxUrl: txUrl(a.originBlockchain, txHash) ?? undefined,
       state: 'source_submitted',
     });
     try {
@@ -516,7 +518,7 @@ export class PaymentService {
       state,
       verification,
       sourceTxHash,
-      sourceTxUrl: a.sourceTxUrl ?? sd?.originChainTxHashes?.[0]?.explorerUrl,
+      sourceTxUrl: safeExplorerUrl(a.sourceTxUrl) ?? (sourceTxHash ? txUrl(a.originBlockchain, sourceTxHash) : null) ?? safeExplorerUrl(sd?.originChainTxHashes?.[0]?.explorerUrl) ?? undefined,
       destTxs,
       nearTxHashes: sd?.nearTxHashes ?? a.nearTxHashes,
       intentHashes: sd?.intentHashes ?? a.intentHashes,

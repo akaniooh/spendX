@@ -131,6 +131,22 @@ test('full payment journey through the API', async () => {
   assert.equal(dash.requests[0].latestAttempt.state, 'destination_confirmed');
 });
 
+test('a link sent by the browser is never stored or shown (it could be javascript: code)', async () => {
+  const h = harness();
+  const auth = await h.login();
+  const req = (await h.call('POST', '/api/merchant/requests', { destAssetId: USDC.assetId, amount: '1', recipient: MERCHANT }, auth)).body as { slug: string };
+  const a = (await h.call('POST', `/api/requests/${req.slug}/attempts`, { originAssetId: SOL.assetId, payerAddress: PAYER })).body as { id: string };
+  const hash = 'aDpHeJ9rfEAAU39xrkfwjWE9NvxzYaygaDpHeJ9rfEAAU39xrkfwjWE9NvxzYaygaDpHeJ9rfEAAU39xrkfwjWE9';
+  const dep = await h.call('POST', `/api/attempts/${a.id}/deposit`, { txHash: hash, explorerUrl: 'javascript:alert(document.domain)' });
+  assert.equal(dep.status, 200);
+  const view = (await h.call('GET', `/api/attempts/${a.id}`)).body as { attempt: { source: { explorerUrl: string } } };
+  assert.equal(view.attempt.source.explorerUrl, `https://solscan.io/tx/${hash}`);
+  assert.ok(!JSON.stringify(view).includes('javascript:'));
+  // the merchant's own dashboard shows the same safe link
+  const dash = (await h.call('GET', '/api/merchant/requests', undefined, auth)).body as { requests: { latestAttempt: { source: { explorerUrl: string } } }[] };
+  assert.equal(dash.requests[0].latestAttempt.source.explorerUrl, `https://solscan.io/tx/${hash}`);
+});
+
 test('a merchant only sees their own requests', async () => {
   const h = harness();
   const auth = await h.login();
