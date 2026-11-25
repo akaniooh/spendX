@@ -3,7 +3,7 @@
 FROM node:22-slim
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm install --no-audit --no-fund
+RUN npm ci
 COPY . .
 # Build the website, then drop the build-only tools (vite, typescript) from the final image.
 RUN npm run build && npm prune --omit=dev
