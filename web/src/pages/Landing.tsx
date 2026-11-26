@@ -21,9 +21,9 @@ function Badge({ children }: { children: string }) {
   return <span className="lp-badge"><i />{children}</span>;
 }
 
-function SectionHead({ badge, title, lead }: { badge: string; title: string; lead?: string }) {
+function SectionHead({ badge, title, lead, long }: { badge: string; title: string; lead?: string; long?: boolean }) {
   return (
-    <div className="lp-head lp-reveal">
+    <div className={long ? 'lp-head lp-head-long lp-reveal' : 'lp-head lp-reveal'}>
       <Badge>{badge}</Badge>
       <h2>{title}</h2>
       {lead && <p>{lead}</p>}
@@ -268,7 +268,6 @@ export function Landing() {
         <div className="lp-hero-glow" aria-hidden="true" />
         <div className="lp-hero-copy">
           <h1><Words text="Cross any chain" /><br /><span className="lp-accent"><Words text="in one click." start={3} /></span></h1>
-          <p>Swap and send {stats ? stats.tokens : 'hundreds of'} tokens across {stats ? stats.networks : 'dozens of'} networks with a single tap. SpendX turns every cross-chain move into one simple step, and payment links let anyone pay you on the chain you prefer.</p>
           <div className="lp-actions">
             <a className="lp-primary" href="#/swap">Launch app</a>
             <button className="lp-secondary" onClick={() => scrollToSection('how')}>See how it works</button>
@@ -298,7 +297,7 @@ export function Landing() {
       </div>
 
       <section className="lp-section" id="difference">
-        <SectionHead badge="The difference" title="Cross-chain used to take five tabs. Now it takes one click." lead="Moving money between blockchains should feel like sending a message, not like a research project." />
+        <SectionHead badge="The difference" title="Cross-chain used to take five tabs. Now it takes one click." />
         <div className="lp-compare">
           <article className="lp-card lp-reveal">
             <h3><span className="lp-card-ico"><Icon name="tabs" size={18} /></span>The usual way</h3>
@@ -312,7 +311,7 @@ export function Landing() {
       </section>
 
       <section className="lp-section" id="how">
-        <SectionHead badge="How it works" title="Three choices. One click. Done." lead="SpendX hides the hard parts of moving value between blockchains. You decide the outcome, NEAR Intents finds the path to it." />
+        <SectionHead long badge="How it works" title="SpendX hides the hard parts of moving value between blockchains. You decide the outcome, NEAR Intents finds the path to it." />
         <ol className="lp-steps">
           {STEPS.map((s, k) => (
             <li key={s.title} className="lp-card lp-reveal" style={idx(k)}>
@@ -325,7 +324,7 @@ export function Landing() {
       </section>
 
       <section className="lp-section" id="why">
-        <SectionHead badge="Why SpendX" title="Everything cross-chain should have been from the start." lead="Built for people who want their money to move, without studying bridges, wrapped tokens and gas on five different networks." />
+        <SectionHead badge="Why SpendX" title="Everything cross-chain should have been from the start." />
         <div className="lp-bento">
           <article className="lp-card lp-b-main lp-reveal">
             <div>
@@ -365,7 +364,6 @@ export function Landing() {
         <div className="lp-pl-copy lp-reveal">
           <Badge>Payment links</Badge>
           <h2>Get paid on your chain, whatever they hold.</h2>
-          <p>Create a SpendX payment link, choose the token and network you want to receive, and share it anywhere. The sender pays with whatever they have, on whichever chain they use.</p>
           <ul>
             <li><span><Icon name="link" size={18} /></span><div><strong>Create your link</strong><small>Choose the token and the network you want to be paid in.</small></div></li>
             <li><span><Icon name="send" size={18} /></span><div><strong>Share it anywhere</strong><small>Drop it in a chat, an invoice, an email or your bio.</small></div></li>
@@ -431,7 +429,6 @@ export function Landing() {
         <div className="lp-faq-left lp-reveal">
           <Badge>FAQ</Badge>
           <h2>Questions, answered.</h2>
-          <p>The essentials before your first one-click swap or payment link.</p>
           <div className="lp-faq-cta">
             <h3>Ready to cross your first chain?</h3>
             <p>Connect your wallet and send anything, anywhere, in a single click.</p>

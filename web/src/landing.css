@@ -33,6 +33,8 @@
 .lp-head { max-width: 760px; margin: 0 auto; text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--s4); }
 .lp-head h2, .lp-pl-copy h2, .lp-intents-copy h2, .lp-faq-left h2, .lp-final h2 { font-size: clamp(30px, 4.2vw, 48px); line-height: 1.08; letter-spacing: -.03em; }
 .lp-head p { max-width: 36em; color: var(--text-2); font-size: var(--fs-lead); line-height: 1.6; }
+.lp-head-long { max-width: 1100px; }
+.lp-head-long h2 { font-size: clamp(30px, 4.2vw, 48px); line-height: 1.15; letter-spacing: -.025em; text-wrap: balance; }
 
 .lp-card { position: relative; padding: var(--s6); background: linear-gradient(160deg, var(--surface) 0%, color-mix(in srgb, var(--surface) 55%, var(--bg)) 100%); border: 1px solid var(--line); border-radius: var(--card-radius); transition: border-color .25s, transform .3s cubic-bezier(.2, .7, .2, 1), box-shadow .3s; }
 .lp-card:hover { border-color: color-mix(in srgb, var(--accent) 32%, var(--line)); }
