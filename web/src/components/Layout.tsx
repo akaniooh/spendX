@@ -31,6 +31,37 @@ function useServerDown(): boolean {
   return down;
 }
 
+/** Landing-page footer: the brand, two columns of links and the risk note. */
+function LandingFooter() {
+  return (
+    <footer className="lp-footer">
+      <div className="lp-footer-top">
+        <div className="lp-footer-brand">
+          <Brand footer />
+          <p>One-click cross-chain swaps, transfers and payment links.</p>
+          <span className="lp-footer-pill"><i />Built on NEAR Intents</span>
+        </div>
+        <div className="lp-footer-col">
+          <h4>Product</h4>
+          <a href="#/swap">Swap</a>
+          <a href="#/merchant">Payment links</a>
+          <button onClick={() => scrollToSection('networks')}>Networks and tokens</button>
+        </div>
+        <div className="lp-footer-col">
+          <h4>Learn</h4>
+          <button onClick={() => scrollToSection('how')}>How it works</button>
+          <button onClick={() => scrollToSection('built-on')}>NEAR Intents</button>
+          <button onClick={() => scrollToSection('faq')}>FAQ</button>
+        </div>
+      </div>
+      <div className="lp-footer-bottom">
+        <span>© 2026 SpendX. All rights reserved.</span>
+        <span>Digital assets are volatile and carry risk. Nothing on this site is financial advice.</span>
+      </div>
+    </footer>
+  );
+}
+
 export function Layout({ route, children }: { route: Route; children: ReactNode }) {
   const w = useWallets();
   const down = useServerDown();
@@ -46,9 +77,9 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
           <Brand />
           <nav className="nav" aria-label="Sections">
             <button onClick={() => scrollToSection('how')}>How it works</button>
-            <button onClick={() => scrollToSection('payments')}>Features</button>
+            <button onClick={() => scrollToSection('payments')}>Payment links</button>
+            <button onClick={() => scrollToSection('built-on')}>NEAR Intents</button>
             <button onClick={() => scrollToSection('networks')}>Networks</button>
-            <button onClick={() => scrollToSection('built-on')}>Built on NEAR Intents</button>
             <button onClick={() => scrollToSection('faq')}>FAQ</button>
           </nav>
           <div className="topbar-end"><a className="lp-launch" href="#/swap">Launch app</a></div>
@@ -75,6 +106,7 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
       </header>
       )}
       <main><ErrorBoundary key={route.name}>{children}</ErrorBoundary></main>
+      {route.name === 'home' ? <LandingFooter /> : (
       <footer>
         <Brand footer />
         <span>© 2026 SpendX</span>
@@ -83,6 +115,7 @@ export function Layout({ route, children }: { route: Route; children: ReactNode 
           <a href="https://explorer.near-intents.org/" target="_blank" rel="noreferrer noopener">Intents explorer</a>
         </div>
       </footer>
+      )}
       <WalletModal />
     </div>
     </SettingsProvider>

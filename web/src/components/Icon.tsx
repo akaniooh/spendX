@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { iconSources, useIconMaps } from '../lib/icons.ts';
 import { chainColor, chainMark, contrastText, tokenColor, tokenMark } from '../lib/colors.ts';
 
-export type IconName = 'arrow' | 'arrowDown' | 'check' | 'chevron' | 'clock' | 'close' | 'copy' | 'external' | 'history' | 'info' | 'link' | 'menu' | 'plus' | 'route' | 'search' | 'shield' | 'swap' | 'wallet' | 'alert' | 'sparkle' | 'settings' | 'sun' | 'moon' | 'themeHalf' | 'coins' | 'bars' | 'database' | 'back';
+export type IconName = 'arrow' | 'arrowDown' | 'check' | 'chevron' | 'clock' | 'close' | 'copy' | 'external' | 'history' | 'info' | 'link' | 'menu' | 'plus' | 'route' | 'search' | 'shield' | 'swap' | 'wallet' | 'alert' | 'sparkle' | 'settings' | 'sun' | 'moon' | 'themeHalf' | 'coins' | 'bars' | 'database' | 'back' | 'arrowUpRight' | 'zap' | 'send' | 'undo' | 'pen' | 'briefcase' | 'store' | 'heart' | 'xCircle' | 'tabs';
 
 const PATHS: Record<IconName, ReactNode> = {
   arrow: <path d="M5 12h14m-5-5 5 5-5 5" />,
@@ -33,6 +33,16 @@ const PATHS: Record<IconName, ReactNode> = {
   bars: <path d="M6 20v-9M12 20V4M18 20v-6" />,
   database: (<><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" /></>),
   back: <path d="m15 18-6-6 6-6" />,
+  arrowUpRight: <path d="M7 17 17 7M8 7h9v9" />,
+  zap: <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />,
+  send: <path d="m21 3-9.5 18-2.5-7.5L1.5 11 21 3ZM9 13.5 21 3" />,
+  undo: (<><path d="M3 12a9 9 0 1 1 3 6.7" /><path d="M3 4v5h5" /></>),
+  pen: <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" />,
+  briefcase: (<><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18" /></>),
+  store: (<><path d="M4 9 5.5 4h13L20 9M4 9a2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 6 0 2.5 2.5 0 0 0 5 0M5 11.5V20h14v-8.5M10 20v-5h4v5" /></>),
+  heart: <path d="M12 20s-7-4.4-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.6-9 9-9 9Z" />,
+  xCircle: (<><circle cx="12" cy="12" r="9" /><path d="m9 9 6 6M15 9l-6 6" /></>),
+  tabs: (<><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 9h18M8 5v4" /></>),
   alert: (<><path d="M12 3 2 20h20L12 3Z" /><path d="M12 10v4M12 17h.01" /></>),
 };
 
