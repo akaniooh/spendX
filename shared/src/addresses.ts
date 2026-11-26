@@ -62,3 +62,16 @@ export function validateAddress(blockchain: string, address: string): AddressChe
 export function sameAddress(blockchain: string, a: string, b: string): boolean {
   return familyOf(blockchain) === 'evm' ? a.toLowerCase() === b.toLowerCase() : a === b;
 }
+
+/** A plain 0x… EVM address (40 hex characters). Anything else, including patterns with % or _, is not one. */
+export function isEvmAddress(a: string): boolean {
+  return /^0x[0-9a-fA-F]{40}$/.test(a);
+}
+
+/**
+ * The same wallet? EVM addresses differ only in letter case (a checksum), so they are compared ignoring case; other
+ * chains' addresses (Solana's base58 is case-sensitive) must match exactly.
+ */
+export function sameWalletAddress(a: string, b: string): boolean {
+  return isEvmAddress(a) && isEvmAddress(b) ? a.toLowerCase() === b.toLowerCase() : a === b;
+}

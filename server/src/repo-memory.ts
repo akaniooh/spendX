@@ -1,3 +1,4 @@
+import { sameWalletAddress } from '../../shared/src/addresses.ts';
 import { randomUUID } from 'node:crypto';
 import { RETRYABLE_STATES } from '../../shared/src/status.ts';
 import { SpendXError } from './domain.ts';
@@ -26,7 +27,7 @@ export class MemoryRepository implements Repository {
     if (r) r.status = status;
   }
   async listRequestsByMerchant(address: string) {
-    return [...this.requests.values()].filter((r) => r.merchantAddress === address);
+    return [...this.requests.values()].filter((r) => sameWalletAddress(r.merchantAddress, address));
   }
   async createAttempt(a: Omit<Attempt, 'id' | 'createdAt' | 'updatedAt'>) {
     if (await this.getLiveAttempt(a.requestId)) {
@@ -54,9 +55,8 @@ export class MemoryRepository implements Repository {
     return [...this.attempts.values()].filter((x) => x.requestId === requestId);
   }
   async listAttemptsByPayer(address: string, limit: number) {
-    const same = (a: string) => (address.startsWith('0x') ? a.toLowerCase() === address.toLowerCase() : a === address);
     return [...this.attempts.values()]
-      .filter((x) => same(x.payerAddress))
+      .filter((x) => sameWalletAddress(x.payerAddress, address))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, limit);
   }

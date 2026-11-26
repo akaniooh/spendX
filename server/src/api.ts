@@ -205,6 +205,7 @@ export function buildRoutes(d: ApiDeps): Route[] {
     {
       method: 'POST', path: '/api/auth/challenge',
       handler: safe(async (req) => {
+        throttle(req, 20, 60_000, 'auth-challenge');
         const b = obj(req.body);
         return ok(createChallenge(d.auth, str(b, 'address', 128), family(str(b, 'family', 8))));
       }),
@@ -212,6 +213,8 @@ export function buildRoutes(d: ApiDeps): Route[] {
     {
       method: 'POST', path: '/api/auth/verify',
       handler: safe(async (req) => {
+        // NEAR sign-in checks the key with an outside call each time, so this is where abuse would cost the most.
+        throttle(req, 15, 60_000, 'auth-verify');
         const b = obj(req.body);
         return ok(await verifyLogin(d.auth, {
           address: str(b, 'address', 128), family: family(str(b, 'family', 8)),

@@ -1,3 +1,4 @@
+import { isEvmAddress } from '../../shared/src/addresses.ts';
 import { SpendXError } from './domain.ts';
 import type { Attempt, PaymentRequest, Repository } from './domain.ts';
 
@@ -124,7 +125,9 @@ export class SupabaseRepository implements Repository {
     this.check(await this.db.from('payment_requests').update({ status }).eq('id', id), 'updating a payment request');
   }
   async listRequestsByMerchant(address: string) {
-    const res: QueryResult = await this.db.from('payment_requests').select('*').eq('merchant_address', address).order('created_at', { ascending: false });
+    // EVM addresses are case-insensitive (checksummed vs lowercase), so a merchant sees the same history whichever way their wallet writes the address.
+    const base = this.db.from('payment_requests').select('*');
+    const res: QueryResult = await (isEvmAddress(address) ? base.ilike('merchant_address', address) : base.eq('merchant_address', address)).order('created_at', { ascending: false });
     this.check(res, 'listing payment requests');
     return (res.data as Row[]).map(rowToRequest);
   }
@@ -160,7 +163,8 @@ export class SupabaseRepository implements Repository {
   async listAttemptsByPayer(address: string, limit: number) {
     let q = this.db.from('payment_attempts').select('*');
     // EVM addresses are case-insensitive (checksummed vs lowercase); Solana (base58) addresses are case-sensitive.
-    q = address.startsWith('0x') ? q.ilike('payer_address', address) : q.eq('payer_address', address);
+    // ilike treats % and _ as wildcards, so it is only used for a strictly valid 0x address.
+    q = isEvmAddress(address) ? q.ilike('payer_address', address) : q.eq('payer_address', address);
     const res: QueryResult = await q.order('created_at', { ascending: false }).limit(limit);
     this.check(res, 'listing attempts by payer');
     return (res.data as Row[]).map(rowToAttempt);

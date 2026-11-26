@@ -147,6 +147,30 @@ test('a link sent by the browser is never stored or shown (it could be javascrip
   assert.equal(dash.requests[0].latestAttempt.source.explorerUrl, `https://solscan.io/tx/${hash}`);
 });
 
+test('sign-in routes are rate limited per client', async () => {
+  const h = harness();
+  const body = { address: MERCHANT, family: 'evm' };
+  for (let i = 0; i < 20; i++) assert.equal((await h.call('POST', '/api/auth/challenge', body)).status, 200);
+  assert.equal((await h.call('POST', '/api/auth/challenge', body)).status, 429);
+  const bad = { address: MERCHANT, family: 'evm', challengeToken: 'x.y', signature: 'nope' };
+  for (let i = 0; i < 15; i++) assert.equal((await h.call('POST', '/api/auth/verify', bad)).status, 401);
+  assert.equal((await h.call('POST', '/api/auth/verify', bad)).status, 429);
+  h.advance(61_000); // the window passes and sign-in works again
+  assert.equal((await h.call('POST', '/api/auth/challenge', body)).status, 200);
+});
+
+test('a merchant sees the same history whether their wallet writes the address in checksum or lower case', async () => {
+  const h = harness();
+  const auth = await h.login(); // signs in with the checksummed address
+  const made = await h.call('POST', '/api/merchant/requests', { destAssetId: USDC.assetId, amount: '1', recipient: MERCHANT }, auth);
+  assert.equal(made.status, 201);
+  const lower = MERCHANT.toLowerCase();
+  const c = (await h.call('POST', '/api/auth/challenge', { address: lower, family: 'evm' })).body as { challengeToken: string };
+  const v = (await h.call('POST', '/api/auth/verify', { address: lower, family: 'evm', challengeToken: c.challengeToken, signature: 'valid' })).body as { token: string };
+  const list = (await h.call('GET', '/api/merchant/requests', undefined, { authorization: `Bearer ${v.token}` })).body as { requests: unknown[] };
+  assert.equal(list.requests.length, 1);
+});
+
 test('a merchant only sees their own requests', async () => {
   const h = harness();
   const auth = await h.login();
