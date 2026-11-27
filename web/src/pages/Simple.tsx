@@ -59,7 +59,7 @@ export function Home() {
           {!w.evm && !w.svm ? <p className="muted">No wallet connected. Use the buttons at the top right.</p> : (
             <ul className="list">
               {w.evm && <li><span>EVM · {w.evm.name}</span><span className="mono">{shortAddr(w.evm.address, 8, 6)}</span></li>}
-              {w.svm && <li><span>Solana · Phantom</span><span className="mono">{shortAddr(w.svm.address, 8, 6)}</span></li>}
+              {w.svm && <li><span>Solana · {w.svm.name}</span><span className="mono">{shortAddr(w.svm.address, 8, 6)}</span></li>}
             </ul>
           )}
         </div>

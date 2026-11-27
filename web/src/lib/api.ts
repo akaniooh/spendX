@@ -47,8 +47,15 @@ export interface SwapBody {
   acknowledgeUncheckedAddress?: boolean;
 }
 
+export interface AlertStatus { enabled: boolean; email?: string; verified?: boolean }
+
 export const api = {
-  config: () => call<{ assistant: boolean }>('GET', '/api/config'),
+  config: () => call<{ assistant: boolean; alerts?: boolean }>('GET', '/api/config'),
+  /** Merchant email alerts: the address is confirmed with a code before anything is sent. */
+  alertsStatus: (token: string) => call<AlertStatus>('GET', '/api/merchant/alerts', undefined, token),
+  alertsEmail: (token: string, email: string) => call<AlertStatus>('POST', '/api/merchant/alerts/email', { email }, token),
+  alertsVerify: (token: string, code: string) => call<AlertStatus>('POST', '/api/merchant/alerts/verify', { code }, token),
+  alertsRemove: (token: string) => call<AlertStatus>('POST', '/api/merchant/alerts/remove', {}, token),
   assistant: (text: string) => call<AssistantResult>('POST', '/api/assistant', { text }),
   catalog: () => call<{ chains: CatalogChain[] }>('GET', '/api/catalog'),
   /** Hourly prices for the last 7 days by token symbol (symbols only: no address or balance is sent). */

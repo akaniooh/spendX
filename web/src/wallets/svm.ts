@@ -8,22 +8,32 @@ import {
 import type { Token } from '../../../shared/src/types.ts';
 import { txUrl } from '../lib/chains.ts';
 
-// Phantom via its injected provider (window.phantom.solana). Other Solana wallets can be added as more adapters.
+// Solana wallets. Every wallet is reached through the small SolanaProvider shape below: Phantom's injected provider already
+// has it, and svm-wallets.ts adapts every other wallet (Solflare, OKX, Backpack, Coinbase, Trust, ...) to it.
 
-interface PhantomProvider {
+type PubKeyLike = { toBase58(): string };
+export interface SolanaProvider {
   isPhantom?: boolean;
-  connect(opts?: { onlyIfTrusted?: boolean }): Promise<{ publicKey: { toBase58(): string } }>;
+  publicKey?: PubKeyLike | null;
+  connect(opts?: { onlyIfTrusted?: boolean }): Promise<{ publicKey: PubKeyLike } | void>;
   disconnect(): Promise<void>;
   signMessage(message: Uint8Array, display?: 'utf8' | 'hex'): Promise<{ signature: Uint8Array } | Uint8Array>;
-  signAndSendTransaction(tx: Transaction): Promise<{ signature: string }>;
+  signAndSendTransaction(tx: Transaction): Promise<{ signature: string } | string>;
 }
 declare global {
-  interface Window { phantom?: { solana?: PhantomProvider } }
+  interface Window { phantom?: { solana?: SolanaProvider } }
 }
 
-export function getPhantom(): PhantomProvider | null {
+export function getPhantom(): SolanaProvider | null {
   const p = typeof window !== 'undefined' ? window.phantom?.solana : undefined;
   return p?.isPhantom ? p : null;
+}
+
+/** The address a provider reports after connect(): wallets return it either from connect() or on provider.publicKey. */
+function addressFrom(res: { publicKey: PubKeyLike } | void, provider: SolanaProvider): string {
+  const pk = (res && res.publicKey) || provider.publicKey;
+  if (!pk) throw new Error('The wallet did not return an account');
+  return pk.toBase58();
 }
 
 // Default: this app's own server (/api/solana-rpc), which holds the real RPC key. VITE_SOLANA_RPC_URL overrides it with a
@@ -67,26 +77,28 @@ function toBase64(bytes: Uint8Array): string {
 
 export class SolanaWallet implements WalletAdapter {
   family = 'svm' as const;
-  private provider: PhantomProvider;
+  private provider: SolanaProvider;
+  private label: string;
   private address: string | null = null;
 
-  constructor(provider: PhantomProvider) {
+  constructor(provider: SolanaProvider, name = 'Phantom') {
     this.provider = provider;
+    this.label = name;
   }
-  get name() { return 'Phantom'; }
+  get name() { return this.label; }
 
   supportsChain(blockchain: string) { return blockchain === 'sol'; }
 
   async connect() {
-    const { publicKey } = await this.provider.connect();
-    this.address = publicKey.toBase58();
+    const res = await this.provider.connect();
+    this.address = addressFrom(res, this.provider);
     return { address: this.address };
   }
-  /** Re-attach silently if the user already approved this site; never opens a Phantom popup. */
+  /** Re-attach silently if the user already approved this site; never opens a wallet popup. */
   async restore(): Promise<{ address: string } | null> {
     try {
-      const { publicKey } = await this.provider.connect({ onlyIfTrusted: true });
-      this.address = publicKey.toBase58();
+      const res = await this.provider.connect({ onlyIfTrusted: true });
+      this.address = addressFrom(res, this.provider);
       return { address: this.address };
     } catch { return null; }
   }
@@ -133,8 +145,8 @@ export class SolanaWallet implements WalletAdapter {
     const tx = new Transaction().add(SystemProgram.transfer({ fromPubkey: from, toPubkey: to, lamports: req.amount }));
     tx.feePayer = from;
     tx.recentBlockhash = (await conn.getLatestBlockhash('confirmed')).blockhash;
-    const { signature } = await this.provider.signAndSendTransaction(tx);
-    return { txHash: signature };
+    const sent = await this.provider.signAndSendTransaction(tx);
+    return { txHash: typeof sent === 'string' ? sent : sent.signature };
   }
 
   /** Pay with a Solana token: create the deposit address's token account if it is missing, then one TransferChecked. */
@@ -188,8 +200,8 @@ export class SolanaWallet implements WalletAdapter {
     }));
     tx.feePayer = from;
     tx.recentBlockhash = (await conn.getLatestBlockhash('confirmed')).blockhash;
-    const { signature } = await this.provider.signAndSendTransaction(tx);
-    return { txHash: signature };
+    const sent = await this.provider.signAndSendTransaction(tx);
+    return { txHash: typeof sent === 'string' ? sent : sent.signature };
   }
 
   explorerTxUrl(blockchain: string, txHash: string) { return txUrl(blockchain, txHash); }

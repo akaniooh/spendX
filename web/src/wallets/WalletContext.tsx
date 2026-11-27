@@ -7,7 +7,9 @@ import { discoverEvmWallets, EvmWallet } from './evm.ts';
 import type { DiscoveredEvmWallet } from './evm.ts';
 import { nearAddressOf } from './near-account.ts';
 import { NearWallet } from './near.ts';
-import { getPhantom, SolanaWallet } from './svm.ts';
+import { SolanaWallet } from './svm.ts';
+import { discoverSvmWallets } from './svm-wallets.ts';
+import type { DiscoveredSvmWallet } from './svm-wallets.ts';
 import { api } from '../lib/api.ts';
 import { sameAddress } from '../lib/history.ts';
 
@@ -17,11 +19,11 @@ export type ConnectableFamily = 'evm' | 'svm' | 'near';
 interface Ctx {
   evmWallets: DiscoveredEvmWallet[];
   evm: { adapter: EvmWallet; address: string; name: string } | null;
-  svm: { adapter: SolanaWallet; address: string } | null;
+  svmWallets: DiscoveredSvmWallet[];
+  svm: { adapter: SolanaWallet; address: string; name: string } | null;
   near: { adapter: NearWallet; address: string } | null;
-  phantomAvailable: boolean;
   connectEvm(id: string): Promise<void>;
-  connectSvm(): Promise<void>;
+  connectSvm(id: string): Promise<void>;
   connectNear(): Promise<void>;
   disconnect(family: ConnectableFamily): void;
   adapterFor(family: WalletFamily): WalletAdapter | null;
@@ -52,7 +54,7 @@ const SESSION_KEY = 'spendx.session'; // legacy single sign-in, still read once
 const SESSIONS_KEY = 'spendx.sessions';
 const NEAR_FLAG = 'spendx.near';
 const EVM_KEY = 'spendx.evm'; // which EVM wallet was connected: {id, name}. Removed only by the Disconnect button.
-const SVM_FLAG = 'spendx.svm';
+const SVM_FLAG = 'spendx.svm'; // which Solana wallet was connected: {id, name} (older versions stored '1' for Phantom). Removed only by Disconnect.
 
 const store = {
   get: (k: string): string | null => { try { return localStorage.getItem(k); } catch { return null; } },
@@ -78,7 +80,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [svm, setSvm] = useState<Ctx['svm']>(null);
   const [near, setNear] = useState<Ctx['near']>(null);
   const [sessions, setSessions] = useState<Session[]>(loadSessions);
-  const [phantomAvailable, setPhantomAvailable] = useState(false);
+  const [svmWallets, setSvmWallets] = useState<DiscoveredSvmWallet[]>([]);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [syncingCount, setSyncingCount] = useState(0);
   const connectorRef = useRef<any>(null);
@@ -96,13 +98,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const syncing = syncingCount > 0;
 
   useEffect(() => discoverEvmWallets(setEvmWallets), []);
-  // Phantom injects shortly after page load, so check again after a moment
-  useEffect(() => {
-    const check = () => setPhantomAvailable(!!getPhantom());
-    check();
-    const t = setTimeout(check, 800);
-    return () => clearTimeout(t);
-  }, []);
+  // Solana wallets announce themselves (Wallet Standard) or inject shortly after page load; the list grows as they appear
+  useEffect(() => discoverSvmWallets(setSvmWallets), []);
 
   // NEAR Connect is created lazily (it loads its wallet manifest over the network) and only when first needed.
   const getConnector = useCallback(async () => {
@@ -173,15 +170,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     void autoSync(adapter, address, 'evm');
   }, [evmWallets, autoSync]);
 
-  const connectSvm = useCallback(async () => {
-    const p = getPhantom();
-    if (!p) throw new Error('Phantom was not detected. Install it from phantom.com and reload.');
-    const adapter = new SolanaWallet(p);
+  const connectSvm = useCallback(async (id: string) => {
+    const info = svmWallets.find((w) => w.id === id);
+    if (!info) throw new Error('That wallet is no longer available. Reload the page and try again.');
+    const adapter = new SolanaWallet(info.provider, info.name);
     const { address } = await adapter.connect();
-    setSvm({ adapter, address });
-    store.set(SVM_FLAG, '1');
+    setSvm({ adapter, address, name: info.name });
+    store.set(SVM_FLAG, JSON.stringify({ id: info.id, name: info.name }));
     void autoSync(adapter, address, 'svm');
-  }, [autoSync]);
+  }, [svmWallets, autoSync]);
 
   // Keep wallets connected across a page refresh. These restores are silent (no popups) and run once;
   // the saved choice is cleared only by the Disconnect button.
@@ -199,13 +196,17 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [evmWallets]);
 
   useEffect(() => {
-    if (restoredSvm.current || !phantomAvailable) return;
+    if (restoredSvm.current || svmWallets.length === 0) return;
+    const raw = store.get(SVM_FLAG);
+    if (!raw) { restoredSvm.current = true; return; }
+    let saved: { id?: string; name?: string } = {};
+    try { saved = raw === '1' ? { name: 'Phantom' } : JSON.parse(raw); } catch { /* ignore */ }
+    const info = svmWallets.find((w) => w.id === saved.id) ?? svmWallets.find((w) => !!saved.name && w.name === saved.name);
+    if (!info) return; // the wallet may still be announcing itself; this effect runs again when the list grows
     restoredSvm.current = true;
-    const p = getPhantom();
-    if (!p || !store.get(SVM_FLAG)) return;
-    const adapter = new SolanaWallet(p);
-    void adapter.restore().then((r) => { if (r) setSvm({ adapter, address: r.address }); });
-  }, [phantomAvailable]);
+    const adapter = new SolanaWallet(info.provider, info.name);
+    void adapter.restore().then((r) => { if (r) setSvm({ adapter, address: r.address, name: info.name }); });
+  }, [svmWallets]);
 
   const connectNear = useCallback(async () => {
     const c = await getConnector();
@@ -248,9 +249,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const closeWalletModal = useCallback(() => setWalletModalOpen(false), []);
 
   const value = useMemo<Ctx>(() => ({
-    evmWallets, evm, svm, near, phantomAvailable, connectEvm, connectSvm, connectNear, disconnect, adapterFor, addressFor,
+    evmWallets, svmWallets, evm, svm, near, connectEvm, connectSvm, connectNear, disconnect, adapterFor, addressFor,
     connectedCount, session, sessions, signIn, signOut, syncing, walletModalOpen, openWalletModal, closeWalletModal,
-  }), [evmWallets, evm, svm, near, phantomAvailable, connectEvm, connectSvm, connectNear, disconnect, adapterFor, addressFor,
+  }), [evmWallets, svmWallets, evm, svm, near, connectEvm, connectSvm, connectNear, disconnect, adapterFor, addressFor,
     connectedCount, session, sessions, signIn, signOut, syncing, walletModalOpen, openWalletModal, closeWalletModal]);
   return <WalletCtx.Provider value={value}>{children}</WalletCtx.Provider>;
 }

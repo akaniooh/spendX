@@ -9,6 +9,7 @@ import { ChainIcon, Icon, Skeleton, TokenIcon } from '../components/Icon.tsx';
 import { IconSelect } from '../components/IconSelect.tsx';
 import { Countdown } from '../components/Countdown.tsx';
 import { ShareLink } from '../components/ShareLink.tsx';
+import { AlertsPrompt } from '../components/AlertsPrompt.tsx';
 import { shareText } from '../lib/share.ts';
 
 const linkFor = (slug: string) => `${window.location.origin}/#/pay/${slug}`;
@@ -43,7 +44,7 @@ function SignIn() {
       </div>
       <div className="row">
         <button className="btn primary" disabled={!w.evm || busy} onClick={() => go('evm')}>{w.evm ? `Sign in with ${w.evm.name}` : 'Connect an EVM wallet first'}</button>
-        <button className="btn primary" disabled={!w.svm || busy} onClick={() => go('svm')}>{w.svm ? 'Sign in with Phantom' : 'Connect Phantom first'}</button>
+        <button className="btn primary" disabled={!w.svm || busy} onClick={() => go('svm')}>{w.svm ? `Sign in with ${w.svm.name}` : 'Connect a Solana wallet first'}</button>
       </div>
       {err && <p className="inline-error">{err}</p>}
     </div>
@@ -268,6 +269,7 @@ function SignedIn({ token, address, family, onSignOut }: { token: string; addres
         <button className="link" onClick={onSignOut}>Sign out</button>
       </div>
       {loadErr ? <p className="inline-error">{loadErr}</p> : <CreateRequest token={token} chains={chains} stats={data?.stats ?? null} onCreated={() => setTick((n) => n + 1)} />}
+      <AlertsPrompt token={token} address={address} onExpired={onSignOut} />
       <History data={data} err={err} />
     </div>
   );

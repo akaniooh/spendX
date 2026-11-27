@@ -7,7 +7,7 @@ import { Icon } from './Icon.tsx';
 
 const ICON_BASE = '/icons/wallets/';
 
-/** Known wallets get a bundled logo; any other EVM wallet falls back to the icon it announces itself, then to its first letter. */
+/** Known wallets get a bundled logo; any other EVM or Solana wallet falls back to the icon it announces itself, then to its first letter. */
 function walletIcon(name: string, announced?: string): string | undefined {
   const n = name.toLowerCase();
   if (n.includes('metamask')) return `${ICON_BASE}metamask.png`;
@@ -71,10 +71,12 @@ export function WalletModal() {
 
         <div className="wallet-group">
           <h3>Solana</h3>
-          {w.phantomAvailable
-            ? <Row mark="P" icon={walletIcon('Phantom')} name="Phantom" detail={w.svm ? shortAddr(w.svm.address, 8, 6) : 'Browser extension'} connected={!!w.svm} disabled={busy !== null}
-                onConnect={() => run('phantom', w.connectSvm)} onDisconnect={off('svm')} />
-            : <p className="text-3 small">Phantom not detected.</p>}
+          {w.svmWallets.length === 0 && <p className="text-3 small">No Solana wallet detected. Install one (Phantom, Solflare, OKX Wallet, Backpack, ...) and reload.</p>}
+          {w.svmWallets.map((x) => {
+            const connected = w.svm?.name === x.name;
+            return <Row key={x.id} mark={x.name.slice(0, 1).toUpperCase()} icon={walletIcon(x.name, x.icon)} name={x.name} detail={connected && w.svm ? shortAddr(w.svm.address, 8, 6) : 'Browser wallet'} connected={connected}
+              disabled={busy !== null} onConnect={() => run(x.id, () => w.connectSvm(x.id))} onDisconnect={off('svm')} />;
+          })}
         </div>
 
         <div className="wallet-group">

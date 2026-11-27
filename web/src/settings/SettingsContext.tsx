@@ -4,6 +4,8 @@ import { api } from '../lib/api.ts';
 import { DEFAULT_SETTINGS, SETTINGS_KEY, formatMoney, parseSettings, resolveTheme } from '../lib/settings.ts';
 import type { Settings } from '../lib/settings.ts';
 
+export type SettingsView = 'main' | 'currency' | 'balances' | 'alerts' | 'data';
+
 interface SettingsValue {
   settings: Settings;
   update: (patch: Partial<Settings>) => void;
@@ -12,6 +14,11 @@ interface SettingsValue {
   money: (usd: number) => string;
   ratesStatus: 'ready' | 'loading' | 'unavailable';
   resolvedTheme: 'light' | 'dark';
+  /** the Settings panel is controlled from here so other pages can open it on a given screen */
+  panel: { open: boolean; view: SettingsView };
+  openSettings: (view?: SettingsView) => void;
+  closeSettings: () => void;
+  setSettingsView: (view: SettingsView) => void;
 }
 
 const Ctx = createContext<SettingsValue | null>(null);
@@ -23,6 +30,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [deviceDark, setDeviceDark] = useState(() => (typeof matchMedia === 'function' ? matchMedia(DARK_QUERY).matches : true));
   const [rates, setRates] = useState<Record<string, number>>({ USD: 1 });
   const [ratesFailed, setRatesFailed] = useState(false);
+  const [panel, setPanel] = useState<{ open: boolean; view: SettingsView }>({ open: false, view: 'main' });
+
+  const openSettings = useCallback((view: SettingsView = 'main') => setPanel({ open: true, view }), []);
+  const closeSettings = useCallback(() => setPanel({ open: false, view: 'main' }), []);
+  const setSettingsView = useCallback((view: SettingsView) => setPanel((p) => ({ ...p, view })), []);
 
   useEffect(() => {
     if (typeof matchMedia !== 'function') return;
@@ -55,7 +67,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const money = useCallback((usd: number) => formatMoney(usd, settings.currency, rates), [settings.currency, rates]);
   const ratesStatus: SettingsValue['ratesStatus'] = !needsRates ? 'ready' : ratesFailed ? 'unavailable' : 'loading';
 
-  const value = useMemo(() => ({ settings, update, reset, money, ratesStatus, resolvedTheme }), [settings, update, reset, money, ratesStatus, resolvedTheme]);
+  const value = useMemo(
+    () => ({ settings, update, reset, money, ratesStatus, resolvedTheme, panel, openSettings, closeSettings, setSettingsView }),
+    [settings, update, reset, money, ratesStatus, resolvedTheme, panel, openSettings, closeSettings, setSettingsView]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

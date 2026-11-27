@@ -5,11 +5,13 @@ import { ACTIVITY_HISTORY_KEY, PORTFOLIO_HISTORY_KEY, clearLocalData } from '../
 import { PAGE_SIZES, SMALL_BALANCE_USD } from '../lib/settings.ts';
 import type { ThemePref } from '../lib/settings.ts';
 import { useSettings } from '../settings/SettingsContext.tsx';
+import type { SettingsView } from '../settings/SettingsContext.tsx';
+import { AlertsPanel } from './AlertsPanel.tsx';
 import { Icon } from './Icon.tsx';
 import type { IconName } from './Icon.tsx';
 
-type View = 'main' | 'currency' | 'balances' | 'data';
-const TITLES: Record<View, string> = { main: 'Settings', currency: 'Local currency', balances: 'Balances and activity', data: 'App data' };
+type View = SettingsView;
+const TITLES: Record<View, string> = { main: 'Settings', currency: 'Local currency', balances: 'Balances and activity', alerts: 'Email alerts', data: 'App data' };
 
 function Row({ icon, label, value, onClick }: { icon: IconName; label: string; value?: string; onClick: () => void }) {
   return (
@@ -43,10 +45,10 @@ function DangerRow({ label, hint, onConfirm }: { label: string; hint: string; on
 }
 
 export function SettingsMenu() {
-  const { settings, update, reset, ratesStatus } = useSettings();
-  const [open, setOpen] = useState(false);
-  const [view, setView] = useState<View>('main');
-  const close = () => { setOpen(false); setView('main'); };
+  const { settings, update, reset, ratesStatus, panel, openSettings, closeSettings, setSettingsView } = useSettings();
+  const { open, view } = panel;
+  const setView = setSettingsView;
+  const close = closeSettings;
 
   useEffect(() => {
     if (!open) return;
@@ -89,6 +91,8 @@ export function SettingsMenu() {
         </div>
       </>
     );
+  } else if (view === 'alerts') {
+    body = <AlertsPanel onClose={close} />;
   } else if (view === 'data') {
     body = (
       <>
@@ -111,6 +115,8 @@ export function SettingsMenu() {
         </div>
         <Row icon="coins" label="Local currency" value={cur ? cur.code : 'USD'} onClick={() => setView('currency')} />
         <Row icon="bars" label="Balances and activity" onClick={() => setView('balances')} />
+        <h3 className="set-section">Merchant</h3>
+        <Row icon="bell" label="Email alerts" onClick={() => setView('alerts')} />
         <h3 className="set-section">Advanced</h3>
         <Row icon="database" label="App data" onClick={() => setView('data')} />
       </>
@@ -119,7 +125,7 @@ export function SettingsMenu() {
 
   return (
     <div className="settings-wrap">
-      <button type="button" className={`icon-button ${open ? 'on' : ''}`} aria-label="Settings" aria-haspopup="dialog" aria-expanded={open} onClick={() => (open ? close() : setOpen(true))}>
+      <button type="button" className={`icon-button ${open ? 'on' : ''}`} aria-label="Settings" aria-haspopup="dialog" aria-expanded={open} onClick={() => (open ? close() : openSettings())}>
         <Icon name="settings" size={20} />
       </button>
       {open && (
