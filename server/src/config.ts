@@ -29,6 +29,8 @@ export interface Config {
     /** a second provider used when the first cannot answer */
     fallback?: { provider: 'anthropic' | 'openai'; apiKey: string; model: string; baseUrl?: string; reasoningEffort?: string };
   };
+  /** email alerts for merchants; undefined (alerts off) unless EMAIL_API_KEY and EMAIL_FROM are set */
+  email?: { provider: 'brevo' | 'resend'; apiKey: string; fromEmail: string; fromName: string };
   /** number of reverse-proxy hops in front of the server (hosting platforms set this up); 0 = none */
   trustProxy: number;
   /** public origin of the web app, shown in the wallet sign-in message (e.g. https://spendx.example) */
@@ -64,6 +66,18 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
   if (secret.length < 32) throw new Error('SESSION_SECRET must be set to a random string of at least 32 characters (see .env.example)');
 
   const repository = (env.REPOSITORY ?? 'supabase') as Config['repository'];
+
+  // Email alerts are optional. Without both values SpendX works the same, minus the alerts.
+  let email: Config['email'];
+  if (env.EMAIL_API_KEY || env.EMAIL_FROM) {
+    if (!env.EMAIL_API_KEY || !env.EMAIL_FROM) throw new Error('Email alerts need both EMAIL_API_KEY and EMAIL_FROM (the address alerts are sent from)');
+    const provider = (env.EMAIL_PROVIDER || 'brevo').toLowerCase();
+    if (provider !== 'brevo' && provider !== 'resend') throw new Error('EMAIL_PROVIDER must be brevo or resend');
+    if (!/^[^\s@<>"',;]+@[^\s@<>"',;]+\.[^\s@<>"',;]+$/.test(env.EMAIL_FROM)) throw new Error('EMAIL_FROM must be a plain email address such as alerts@yourdomain.com');
+    // the sender name goes into an email header, so strip anything that could break out of it
+    const fromName = (env.EMAIL_FROM_NAME || 'SpendX').replace(/[<>"\r\n]/g, '').trim().slice(0, 60) || 'SpendX';
+    email = { provider, apiKey: env.EMAIL_API_KEY, fromEmail: env.EMAIL_FROM, fromName };
+  }
   if (repository !== 'supabase' && repository !== 'memory') throw new Error('REPOSITORY must be "supabase" or "memory"');
   if (repository === 'memory' && env.NODE_ENV === 'production') throw new Error('REPOSITORY=memory is for local development only');
   if (repository === 'supabase' && (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY)) {
@@ -178,6 +192,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     openaiApiKey,
     openaiModel,
     assistant,
+    email,
     trustProxy,
     publicOrigin,
     reconcileIntervalSeconds,

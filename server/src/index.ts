@@ -8,6 +8,8 @@ import { buildRoutes } from './api.ts';
 import { createAssistant } from './assistant.ts';
 import { accessLogLine, jsonErrorHandler } from './http.ts';
 import { startReconciler } from './reconciler.ts';
+import { AlertService } from './alerts.ts';
+import { createEmailer } from './email.ts';
 import { securityHeaders } from './security.ts';
 import { solanaRpcProxyRoute } from './solana-rpc-proxy.ts';
 import { createNearSignatureVerifier, verifyEvmSignature, verifySolanaSignature } from './auth.ts';
@@ -38,8 +40,12 @@ if (cfg.repository === 'memory') {
 
 const client = new OneClickClient({ baseUrl: cfg.oneClickBaseUrl, apiKey: cfg.oneClickApiKey });
 const catalog = new CatalogCache(client);
+// Merchant email alerts: only on when EMAIL_API_KEY and EMAIL_FROM are set.
+const alerts = new AlertService({ repo, emailer: cfg.email ? createEmailer(cfg.email) : undefined, secret: cfg.sessionSecret, origin: cfg.publicOrigin, log: (m, e) => console.error(m, e) });
+console.log(cfg.email ? `Email alerts on: ${cfg.email.provider}` : 'Email alerts off (set EMAIL_API_KEY and EMAIL_FROM to turn them on)');
 const service = new PaymentService({
   repo, client, catalog,
+  onOutcome: (a, r, k) => alerts.enqueue(a, r, k),
   // Docs: verifyQuoteSignature(quoteResponse) -> boolean, SDK >= 0.1.24. We pass the untouched API response.
   verifyQuoteSignature: (q: QuoteResponse) => verifyQuoteSignature(q as never),
   // Independent delivery checks against the destination chain itself (EVM and Solana). Other families stay "reported".
@@ -54,7 +60,7 @@ const assistant = cfg.assistant ? createAssistant({ ...cfg.assistant, catalog })
 if (cfg.assistant) console.log(`Assistant on: ${cfg.assistant.provider}, model "${cfg.assistant.model}"${cfg.assistant.baseUrl ? `, ${cfg.assistant.baseUrl}` : ''}`);
 if (cfg.assistant?.fallback) console.log(`Assistant fallback: ${cfg.assistant.fallback.provider}, model "${cfg.assistant.fallback.model}"`);
 const routes = buildRoutes({
-  service, repo, catalog, assistant,
+  service, repo, catalog, assistant, alerts,
   auth: { secret: cfg.sessionSecret, origin: cfg.publicOrigin, verifiers: { svm: verifySolanaSignature, evm: verifyEvmSignature, near: createNearSignatureVerifier({ rpcUrl: rpcUrlFor('near') ?? 'https://free.rpc.fastnear.com' }) } },
 });
 
@@ -114,6 +120,8 @@ const reconciler = cfg.reconcileIntervalSeconds > 0
       run: async () => {
         const r = await service.reconcile();
         if (r.failed > 0) console.warn(`Reconcile: ${r.failed} of ${r.checked} checks failed`);
+        const m = await alerts.processPending();
+        if (m.failed > 0) console.warn(`Alerts: ${m.failed} could not be sent (they will be retried)`);
       },
     })
   : undefined;

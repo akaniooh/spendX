@@ -1,6 +1,6 @@
 import { isEvmAddress } from '../../shared/src/addresses.ts';
 import { SpendXError } from './domain.ts';
-import type { Attempt, PaymentRequest, Repository } from './domain.ts';
+import type { AlertJob, AlertKind, Attempt, MerchantContact, PaymentRequest, Repository } from './domain.ts';
 
 // Minimal structural type for the parts of @supabase/supabase-js we use, so this file does not import it
 // (the server entry point creates the client and passes it in).
@@ -179,4 +179,58 @@ export class SupabaseRepository implements Repository {
       .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
       .slice(0, limit);
   }
+
+  // ----- merchant alerts -----
+  async getMerchantContact(merchantKey: string) {
+    const res: QueryResult = await this.db.from('merchant_contacts').select('*').eq('merchant_key', merchantKey).maybeSingle();
+    this.check(res, 'loading a merchant contact');
+    return res.data ? rowToContact(res.data) : null;
+  }
+  async saveMerchantContact(c: MerchantContact) {
+    this.check(await this.db.from('merchant_contacts').upsert(contactToRow(c), { onConflict: 'merchant_key' }), 'saving a merchant contact');
+  }
+  async deleteMerchantContact(merchantKey: string) {
+    this.check(await this.db.from('merchant_contacts').delete().eq('merchant_key', merchantKey), 'deleting a merchant contact');
+  }
+  async enqueueAlert(a: { attemptId: string; requestId: string; merchantKey: string; kind: AlertKind }) {
+    // The unique (attempt_id, kind) index makes a second insert a no-op, so an alert can never go out twice.
+    this.check(
+      await this.db.from('alert_outbox').upsert({ attempt_id: a.attemptId, request_id: a.requestId, merchant_key: a.merchantKey, kind: a.kind }, { onConflict: 'attempt_id,kind', ignoreDuplicates: true }),
+      'queueing an alert',
+    );
+  }
+  async claimAlerts(nowIso: string, lockUntilIso: string, limit: number) {
+    const due: QueryResult = await this.db.from('alert_outbox').select('*').eq('status', 'pending').lte('next_try_at', nowIso).order('created_at', { ascending: true }).limit(limit);
+    this.check(due, 'listing due alerts');
+    const claimed: AlertJob[] = [];
+    for (const row of due.data as Row[]) {
+      // Compare-and-set: only the run that moves next_try_at forward gets the job.
+      const res: QueryResult = await this.db.from('alert_outbox').update({ next_try_at: lockUntilIso }).eq('id', row.id).eq('status', 'pending').lte('next_try_at', nowIso).select();
+      this.check(res, 'claiming an alert');
+      if ((res.data as Row[]).length > 0) claimed.push(rowToAlert((res.data as Row[])[0]));
+    }
+    return claimed;
+  }
+  async finishAlert(id: string, patch: { status: AlertJob['status']; tries: number; nextTryAt?: string; lastError?: string }) {
+    const row: Row = { status: patch.status, tries: patch.tries, last_error: patch.lastError ?? null };
+    if (patch.nextTryAt) row.next_try_at = patch.nextTryAt;
+    if (patch.status === 'sent') row.sent_at = new Date().toISOString();
+    this.check(await this.db.from('alert_outbox').update(row).eq('id', id), 'updating an alert');
+  }
 }
+
+const contactToRow = (c: MerchantContact): Row => ({
+  merchant_key: c.merchantKey, email: c.email, verified_at: c.verifiedAt ?? null,
+  code_hash: c.codeHash ?? null, code_expires_at: c.codeExpiresAt ?? null, code_attempts: c.codeAttempts,
+  last_code_at: c.lastCodeAt ?? null, code_sends: c.codeSends, code_window_start: c.codeWindowStart ?? null,
+  updated_at: new Date().toISOString(),
+});
+const rowToContact = (x: Row): MerchantContact => ({
+  merchantKey: x.merchant_key, email: x.email, verifiedAt: x.verified_at ?? undefined,
+  codeHash: x.code_hash ?? undefined, codeExpiresAt: x.code_expires_at ?? undefined, codeAttempts: x.code_attempts ?? 0,
+  lastCodeAt: x.last_code_at ?? undefined, codeSends: x.code_sends ?? 0, codeWindowStart: x.code_window_start ?? undefined,
+});
+const rowToAlert = (x: Row): AlertJob => ({
+  id: x.id, attemptId: x.attempt_id, requestId: x.request_id, merchantKey: x.merchant_key, kind: x.kind,
+  status: x.status, tries: x.tries, nextTryAt: x.next_try_at, lastError: x.last_error ?? undefined,
+});

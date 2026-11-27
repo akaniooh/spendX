@@ -135,12 +135,12 @@ function api(assistant?: ReturnType<typeof createAssistant>) {
 
 test('API: the assistant is reported as disabled without a key, refuses calls, and is rate limited when enabled', async () => {
   const off = api();
-  assert.deepEqual((await off('GET', '/api/config')).body, { assistant: false });
+  assert.deepEqual((await off('GET', '/api/config')).body, { assistant: false, alerts: false });
   assert.equal((await off('POST', '/api/assistant', { text: '10 SOL to USDC' })).status, 503);
 
   const m = fakeModel(toolReply({ is_swap: true, amount: '1', from_token: 'SOL', to_token: 'USDC', to_chain: 'Base' }));
   const on = api(createAssistant({ apiKey: 'k', model: 'm', catalog: { get: async () => TOKENS }, fetchImpl: m.f }));
-  assert.deepEqual((await on('GET', '/api/config')).body, { assistant: true });
+  assert.deepEqual((await on('GET', '/api/config')).body, { assistant: true, alerts: false });
   const ok = await on('POST', '/api/assistant', { text: '1 SOL to USDC on Base' });
   assert.equal(ok.status, 200);
   assert.equal((ok.body as { action: string }).action, 'swap');

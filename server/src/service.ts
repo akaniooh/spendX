@@ -11,7 +11,7 @@ import { derivePaymentState, isTerminal } from '../../shared/src/status.ts';
 import type { DestinationVerifier } from '../../shared/src/adapters.ts';
 import type { Quote, QuoteRequestBody, QuoteResponse, Token } from '../../shared/src/types.ts';
 import { SpendXError } from './domain.ts';
-import type { Attempt, PaymentRequest, Repository } from './domain.ts';
+import type { AlertKind, Attempt, PaymentRequest, Repository } from './domain.ts';
 import { OneClickError, buildExactInputQuote, buildExactOutputQuote } from './oneclick.ts';
 import type { OneClickClient } from './oneclick.ts';
 
@@ -28,6 +28,8 @@ export interface ServiceDeps {
   deadlineMinutes: number;
   /** how long a merchant payment link stays usable after it is created (default 30) */
   linkExpiryMinutes?: number;
+  /** called once when a payment link's attempt first reaches paid / failed / refunded (used to queue merchant alerts) */
+  onOutcome?: (attempt: Attempt, request: PaymentRequest, kind: AlertKind) => Promise<void>;
   now?: () => number;
 }
 
@@ -533,6 +535,12 @@ export class PaymentService {
       // Reviving an expired attempt can collide with a newer live one (unique index): keep the old row then.
       if (wasExpired) return a;
       throw e;
+    }
+    // A merchant's payment link reached a final outcome for the first time: queue an alert. This only saves a job, and a
+    // problem here must never get in the way of the payment itself.
+    const outcome = state === 'destination_confirmed' ? 'paid' : state === 'failed' ? 'failed' : state === 'refunded' ? 'refunded' : null;
+    if (outcome && a.state !== state && req.kind === 'payment' && this.d.onOutcome) {
+      try { await this.d.onOutcome(updated, req, outcome); } catch { /* alerts are best effort */ }
     }
     if (state === 'destination_confirmed') await this.d.repo.setRequestStatus(req.id, 'paid');
     return updated;

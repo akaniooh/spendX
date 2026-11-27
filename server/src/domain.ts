@@ -48,6 +48,37 @@ export interface Attempt {
   updatedAt: string;
 }
 
+/** A merchant's alert email. It only receives alerts once `verifiedAt` is set (the merchant typed back a code we emailed). */
+export interface MerchantContact {
+  /** walletKey() of the merchant's address */
+  merchantKey: string;
+  email: string;
+  verifiedAt?: string;
+  /** HMAC of the emailed code; the code itself is never stored */
+  codeHash?: string;
+  codeExpiresAt?: string;
+  codeAttempts: number;
+  lastCodeAt?: string;
+  /** codes sent in the current hour, to stop someone using us to spam an address */
+  codeSends: number;
+  codeWindowStart?: string;
+}
+
+export type AlertKind = 'paid' | 'failed' | 'refunded';
+
+/** One email to send. Saved to the database first, so a restart or a sleeping server never loses an alert. */
+export interface AlertJob {
+  id: string;
+  attemptId: string;
+  requestId: string;
+  merchantKey: string;
+  kind: AlertKind;
+  status: 'pending' | 'sent' | 'skipped' | 'dead';
+  tries: number;
+  nextTryAt: string;
+  lastError?: string;
+}
+
 export class SpendXError extends Error {
   code: string;
   httpStatus: number;
@@ -80,4 +111,14 @@ export interface Repository {
    * that expired after `cutoffIso` (a late deposit can still arrive). Oldest-updated first, at most `limit`.
    */
   listReconcilable(cutoffIso: string, limit: number): Promise<Attempt[]>;
+
+  // ----- merchant alerts -----
+  getMerchantContact(merchantKey: string): Promise<MerchantContact | null>;
+  saveMerchantContact(c: MerchantContact): Promise<void>;
+  deleteMerchantContact(merchantKey: string): Promise<void>;
+  /** Adds a job unless one already exists for this attempt and kind (that is what makes every alert go out once). */
+  enqueueAlert(a: { attemptId: string; requestId: string; merchantKey: string; kind: AlertKind }): Promise<void>;
+  /** Takes up to `limit` due jobs and hides them until `lockUntilIso`, so two runs never send the same one. */
+  claimAlerts(nowIso: string, lockUntilIso: string, limit: number): Promise<AlertJob[]>;
+  finishAlert(id: string, patch: { status: AlertJob['status']; tries: number; nextTryAt?: string; lastError?: string }): Promise<void>;
 }

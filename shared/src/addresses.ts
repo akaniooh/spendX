@@ -75,3 +75,8 @@ export function isEvmAddress(a: string): boolean {
 export function sameWalletAddress(a: string, b: string): boolean {
   return isEvmAddress(a) && isEvmAddress(b) ? a.toLowerCase() === b.toLowerCase() : a === b;
 }
+
+/** One stable key per wallet: EVM addresses lower-cased (case is only a checksum), everything else exactly as given. */
+export function walletKey(a: string): string {
+  return isEvmAddress(a) ? a.toLowerCase() : a;
+}

@@ -1,3 +1,4 @@
+import type { AlertService } from './alerts.ts';
 import type { WalletFamily } from '../../shared/src/chains.ts';
 import { fromBaseUnits } from '../../shared/src/amounts.ts';
 import { STATE_LABEL, isTerminal } from '../../shared/src/status.ts';
@@ -36,6 +37,8 @@ export interface ApiDeps {
   catalog: { get(): Promise<Token[]> };
   /** present only when an AI provider key is configured */
   assistant?: Assistant;
+  /** present when an email provider is configured (merchant alerts) */
+  alerts?: AlertService;
   now?: () => number;
   log?: (msg: string, err?: unknown) => void;
 }
@@ -166,7 +169,7 @@ export function buildRoutes(d: ApiDeps): Route[] {
 
   const routes: Route[] = [
     { method: 'GET', path: '/api/health', handler: safe(async () => ok({ ok: true })) },
-    { method: 'GET', path: '/api/config', handler: safe(async () => ok({ assistant: !!d.assistant })) },
+    { method: 'GET', path: '/api/config', handler: safe(async () => ok({ assistant: !!d.assistant, alerts: !!d.alerts?.enabled })) },
 
     // The assistant only proposes: it returns fields to pre-fill the Swap screen and can never act.
     {
@@ -202,6 +205,41 @@ export function buildRoutes(d: ApiDeps): Route[] {
     },
 
     // ----- merchant sign-in -----
+    // Merchant email alerts. Every route needs a signed-in merchant; the address is confirmed with a code before anything is sent.
+    {
+      method: 'GET', path: '/api/merchant/alerts',
+      handler: safe(async (req) => {
+        const s = requireSession(d.auth, req.headers.authorization);
+        return ok(d.alerts ? await d.alerts.status(s.address) : { enabled: false });
+      }),
+    },
+    {
+      method: 'POST', path: '/api/merchant/alerts/email',
+      handler: safe(async (req) => {
+        throttle(req, 6, 10 * 60_000, 'alert-code');
+        const s = requireSession(d.auth, req.headers.authorization);
+        if (!d.alerts) throw new SpendXError('alerts_disabled', 'Email alerts are unavailable at the moment. Please try again later.', 503);
+        return ok(await d.alerts.requestCode(s.address, str(obj(req.body), 'email', 254)));
+      }),
+    },
+    {
+      method: 'POST', path: '/api/merchant/alerts/verify',
+      handler: safe(async (req) => {
+        throttle(req, 15, 60_000, 'alert-verify');
+        const s = requireSession(d.auth, req.headers.authorization);
+        if (!d.alerts) throw new SpendXError('alerts_disabled', 'Email alerts are unavailable at the moment. Please try again later.', 503);
+        return ok(await d.alerts.verifyCode(s.address, str(obj(req.body), 'code', 12)));
+      }),
+    },
+    {
+      method: 'POST', path: '/api/merchant/alerts/remove',
+      handler: safe(async (req) => {
+        const s = requireSession(d.auth, req.headers.authorization);
+        if (!d.alerts) throw new SpendXError('alerts_disabled', 'Email alerts are unavailable at the moment. Please try again later.', 503);
+        return ok(await d.alerts.remove(s.address));
+      }),
+    },
+
     {
       method: 'POST', path: '/api/auth/challenge',
       handler: safe(async (req) => {
