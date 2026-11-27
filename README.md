@@ -74,7 +74,7 @@ Nothing is hardcoded to specific chains or tokens. Selectors are built from the 
 flowchart LR
   subgraph Browser["Browser (React + Vite)"]
     UI["Swap / Pay / Merchant / Activity"]
-    W["Wallet adapters<br/>EVM · Phantom · NEAR Connect"]
+    W["Wallet adapters<br/>EVM · Solana (any wallet) · NEAR Connect"]
   end
 
   subgraph Server["SpendX server (Node + Express)"]
@@ -112,7 +112,7 @@ flowchart LR
 | Layer | Where | Responsibility |
 | --- | --- | --- |
 | **Web app** | `web/` | React single-page app. Hash routes (`#/swap`, `#/pay/<slug>`, `#/payments`, `#/activity`, `#/merchant`), live catalog selectors, quote previews, wallet connection, review and status screens. Reads balances from the customer's own wallet in the browser. |
-| **Wallet adapters** | `web/src/wallets/` | One adapter per wallet family behind a common interface (connect, balance, sign message, send deposit). EVM (EIP-6963), Solana (Phantom), NEAR (NEAR Connect). |
+| **Wallet adapters** | `web/src/wallets/` | One adapter per wallet family behind a common interface (connect, balance, sign message, send deposit). EVM (EIP-6963), Solana (Wallet Standard: Phantom, Solflare, OKX, Backpack and others), NEAR (NEAR Connect). |
 | **Server** | `server/` | Express API, payment service, 1Click client, quote validation, delivery verifiers, reconciler, auth, assistant, security headers. |
 | **Shared logic** | `shared/` | Pure, testable code used by both sides: address validation, base-unit amounts, the payment state machine, quote validation, deposit classification, NEAR and SPL transaction planning. |
 | **Storage** | `supabase/` | Postgres tables `payment_requests` and `payment_attempts`, row level security on, and a unique index that allows only **one live attempt per request**. `REPOSITORY=memory` exists for local development only. |
@@ -244,13 +244,23 @@ npm run discover -- --pair "sol:SOL>base:USDC" --amount 1 --addr "svm=<solana ad
 
 Copy `.env.example` to `.env`. **Never commit `.env`**, and never put a secret in a `VITE_` variable: those are bundled into public JavaScript.
 
+### Email alerts
+
+Merchants can get an email when a payment link is **paid, fails or is refunded**. It is optional and off until `EMAIL_API_KEY` and `EMAIL_FROM` are set.
+
+1. Run `supabase/migrations/0003_alerts.sql` in the Supabase SQL editor.
+2. Pick a provider. **Brevo** (free, about 300 emails a day) lets you send from a single verified address, no domain needed: create an account, add and verify your sender address under *Senders*, then create an API key under *SMTP & API*. **Resend** is the alternative, but its free plan only sends to people other than yourself once you own and verify a domain.
+3. On the server set `EMAIL_PROVIDER`, `EMAIL_API_KEY`, `EMAIL_FROM` (and optionally `EMAIL_FROM_NAME`). Without them the Merchant tab simply shows no alerts card.
+
+How it behaves: a merchant adds an email on the Merchant tab and confirms it with a 6-digit code, so nothing is ever sent to an address that has not been confirmed. When a payment link reaches a final state SpendX saves a job in the database and the background job sends it, retrying failures for hours, so a restart or a sleeping free-plan server delays an alert but never loses it. Emails hold the amount, the token and chain, the merchant's own note and a link to the dashboard; they never contain deposit addresses or the secret attempt id. The merchant's email is personal data: **Turn off** in the Merchant tab deletes it.
+
 ### Server
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `SESSION_SECRET` | Yes | At least 32 random characters. Signs sign-in challenges and sessions. |
 | `PUBLIC_ORIGIN` | In production | The https address people open SpendX at (no path, no trailing slash). Written into the wallet sign-in message. |
-| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | In production | Database. Run `supabase/migrations/0001_init.sql` first. The service-role key is server only. |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | In production | Database. Run the files in `supabase/migrations/` in order (`0001`, `0002`, `0003`). The service-role key is server only. |
 | `REPOSITORY` | No | `memory` for local development only (data resets on restart). Default is Supabase. |
 | `SOLANA_RPC_URL` | No | Solana RPC for delivery checks **and** the `/api/solana-rpc` proxy the browser uses. A keyed URL (for example Helius) belongs here, never in a `VITE_` variable. |
 | `RPC_URL_<CHAIN>` | No | Per-chain RPC for delivery checks, for example `RPC_URL_BASE`. EVM chains default to viem's public RPC. |
@@ -260,6 +270,9 @@ Copy `.env.example` to `.env`. **Never commit `.env`**, and never put a secret i
 | `FEE_REFERRAL` | No | Partner tag sent to 1Click so volume is attributed to you (lowercase, default `spendx` once fees are on). |
 | `COINGECKO_API_KEY` | No | Free demo key from CoinGecko. Chain and token logos are fetched from CoinGecko by the server and cached for 12 hours; without a key the public rate limit applies. Anything CoinGecko lacks falls back to the PNGs in `web/public/icons`, then a letter disc. |
 | `ONECLICK_BASE_URL` | No | Override the 1Click API base URL. |
+| `EMAIL_API_KEY`, `EMAIL_FROM` | For alerts | Turns on merchant email alerts (both are needed). `EMAIL_FROM` is the address alerts are sent from. See [Email alerts](#email-alerts). |
+| `EMAIL_PROVIDER` | No | `brevo` (default) or `resend`. |
+| `EMAIL_FROM_NAME` | No | Sender name shown in the inbox. Default `SpendX`. |
 | `TRUST_PROXY` | Behind a proxy | Number of proxy hops to trust so rate limits see the real client IP (`1` for Render alone, `2` for Vercel in front of Render). |
 | `SLIPPAGE_BPS` | No | Default swap slippage in basis points (default 100 = 1%). |
 | `QUOTE_DEADLINE_MINUTES` | No | Quote validity window (default 10, range 3 to 60). |
@@ -338,7 +351,7 @@ If `npm ci` fails on a lockfile mismatch, regenerate the lockfile with `npx npm@
 
 ### No funds needed
 
-1. **Connect a wallet.** Open the app, click **Connect wallet**, and pick an EVM wallet, Phantom, or a NEAR wallet.
+1. **Connect a wallet.** Open the app, click **Connect wallet**, and pick any EVM wallet, any Solana wallet, or a NEAR wallet.
    *Expected:* a chip with the wallet name and a shortened address.
 2. **Sign in as a merchant.** Open **Merchant**, click **Sign in with ...**, and sign the message.
    *Expected:* the wallet shows a plain-text message (no transaction, no fee), then "Signed in as ..." and the create form.
@@ -389,7 +402,7 @@ The page states how delivery was confirmed:
 ```
 shared/    pure logic: addresses, amounts, state machine, quote validation, deposit planning (NEAR, SPL)
 server/    Express API, 1Click client, payment service, verifiers, reconciler, auth, assistant, Solana RPC proxy
-web/       React + Vite app, wallet adapters (EVM, Phantom, NEAR Connect)
+web/       React + Vite app, wallet adapters (EVM, Solana, NEAR Connect)
 supabase/  database migration
 scripts/   discover, db-check, ai-check, assistant-check
 Dockerfile one-container build; vercel.json for the split deployment
